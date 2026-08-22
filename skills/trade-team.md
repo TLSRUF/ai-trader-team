@@ -52,7 +52,7 @@ argument-hint: <티커 또는 자산명>
 - 핵심 수치는 **2개 이상 독립 출처**로 교차검증한다. 출처 간 오차가 크면(기준: 1% 초과 또는 방향이 다른 경우) 그 사실을 보고서에 명시한다.
 - 웹 검색이 막히거나 데이터가 없으면 "⚠️ 미확인"으로 명시한다. 없는 데이터를 있는 것처럼 서술하지 않는다.
 - 출력은 해당 `agents/*.md`에 정의된 출력 포맷을 그대로 따른다.
-- 시세/지표 교차검증은 `tools/trading_rigor.py cross-validate`로, 리스크 관리자의 포지션 사이징·리스크·리워드·상관관계 계산은 `tools/trading_rigor.py position-size` / `risk-reward` / `correlation`으로 수행한다. 암산하지 않는다.
+- 시세/지표 교차검증은 `tools/trading_rigor.py cross-validate`로, 리스크 관리자의 포지션 사이징·리스크·리워드·상관관계·포트폴리오 히트 계산은 `tools/trading_rigor.py position-size` / `risk-reward` / `correlation` / `portfolio-heat`로 수행한다. 암산하지 않는다.
 
 ### 5. 종합 (team-lead)
 

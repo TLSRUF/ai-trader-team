@@ -16,6 +16,9 @@ CLI 사용 예:
 
     python tools/trading_rigor.py correlation \\
         --series-a '[1, 2, 3, 4, 5]' --series-b '[2, 3, 5, 4, 6]'
+
+    python tools/trading_rigor.py portfolio-heat \\
+        --risk-pcts '[1, 1.5, 2]' --max-heat-pct 6
 """
 
 from __future__ import annotations
@@ -187,6 +190,49 @@ def correlation(series_a: list, series_b: list) -> dict:
     return {"n": n, "correlation": str(r.quantize(Decimal("0.0001"))), "level": level}
 
 
+def portfolio_heat(risk_pcts: list, max_heat_pct=6) -> dict:
+    """동시 보유 중인 모든 포지션의 계좌 대비 리스크%(손절 시 손실률)를 합산한다.
+
+    개별 트레이드의 리스크·리워드는 괜찮아 보여도, 여러 포지션의 손절이 동시에
+    체결되는 최악의 경우 계좌 전체가 얼마나 위험한지는 별도로 확인해야 한다.
+    `reports/positions.md`에 기록된 각 포지션의 리스크%를 모아 넘긴다.
+
+    Args:
+        risk_pcts: 각 포지션의 계좌 대비 리스크 비율(%) 리스트 (`position-size`의
+            결과 중 risk_amount / account_size * 100, 또는 직접 산정한 값).
+        max_heat_pct: 허용 한도(%). 기본 6 — 흔히 쓰이는 "전체 포지션 손절 시
+            손실 6% 이내" 관행값이며, 근거가 있다면 다른 값으로 조정 가능하다.
+
+    Returns:
+        n_positions, total_risk_pct, max_heat_pct, over_limit, warnings.
+    """
+    if not risk_pcts:
+        raise ValueError("최소 1개 이상의 포지션 리스크%가 필요합니다.")
+
+    values = [exact(v) for v in risk_pcts]
+    if any(v < 0 for v in values):
+        raise ValueError("리스크%는 음수일 수 없습니다.")
+
+    total = sum(values)
+    max_heat = exact(max_heat_pct)
+    over_limit = total > max_heat
+
+    warnings: list[str] = []
+    if over_limit:
+        warnings.append(
+            f"⚠️ 포트폴리오 히트 {total}%가 한도 {max_heat}%를 초과했습니다 "
+            f"— 모든 포지션이 동시에 손절되면 계좌의 {total}%를 잃습니다."
+        )
+
+    return {
+        "n_positions": len(values),
+        "total_risk_pct": str(total),
+        "max_heat_pct": str(max_heat),
+        "over_limit": over_limit,
+        "warnings": warnings,
+    }
+
+
 def _print_json(data: dict) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
@@ -218,6 +264,10 @@ def main(argv: list[str] | None = None) -> int:
     p_corr.add_argument("--series-a", required=True, type=str, help='JSON 숫자 배열, 예: \'[1, 2, 3]\'')
     p_corr.add_argument("--series-b", required=True, type=str, help="series-a와 길이가 같은 JSON 숫자 배열")
 
+    p_ph = sub.add_parser("portfolio-heat", help="보유 포지션 전체의 계좌 대비 리스크%를 합산한다")
+    p_ph.add_argument("--risk-pcts", required=True, type=str, help='JSON 숫자 배열, 예: \'[1, 1.5, 2]\'')
+    p_ph.add_argument("--max-heat-pct", type=str, default="6", help="허용 한도 (%), 기본 6")
+
     args = parser.parse_args(argv)
 
     try:
@@ -232,6 +282,9 @@ def main(argv: list[str] | None = None) -> int:
             series_a = json.loads(args.series_a)
             series_b = json.loads(args.series_b)
             result = correlation(series_a, series_b)
+        elif args.command == "portfolio-heat":
+            risk_pcts = json.loads(args.risk_pcts)
+            result = portfolio_heat(risk_pcts, args.max_heat_pct)
         else:  # pragma: no cover - argparse가 이미 검증함
             parser.error(f"알 수 없는 커맨드: {args.command}")
             return 2

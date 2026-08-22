@@ -2,6 +2,14 @@
 
 `tools/`의 계산/검증 스크립트에 대한 테스트를 담습니다.
 
-## 현재 상태
+## 현재 테스트
 
-아직 테스트가 없습니다. `tools/`에 스크립트가 추가되는 시점부터 함께 작성합니다.
+| 파일 | 대상 |
+|---|---|
+| [`test_trading_rigor.py`](test_trading_rigor.py) | `tools/trading_rigor.py` — 교차검증, 포지션 사이징, 리스크·리워드 계산 |
+
+실행:
+
+```bash
+python -m unittest tests/test_trading_rigor.py -v
+```

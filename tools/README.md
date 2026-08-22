@@ -9,6 +9,16 @@
 - CLI로 직접 실행 가능해야 함 (에이전트가 Bash로 호출)
 - 각 스크립트는 입력/출력 형식을 문서 상단 docstring에 명시
 
-## 현재 상태
+## 현재 구현된 도구
 
-아직 도구가 구현되지 않았습니다. 첫 검증 도구(예: 시가총액/밸류에이션 검증) 구현은 별도 이슈로 진행합니다.
+| 파일 | 설명 |
+|---|---|
+| [`trading_rigor.py`](trading_rigor.py) | 시세/지표 교차검증, 리스크 기반 포지션 사이징, 리스크·리워드 비율 계산. `Decimal` 기반, 외부 의존성 없음, CLI(`argparse`)로 직접 실행 가능 |
+
+```bash
+python tools/trading_rigor.py cross-validate --field price --values '{"소스A": 101.2, "소스B": 101.5}'
+python tools/trading_rigor.py position-size --account 10000 --risk-pct 1 --entry 100 --stop 95
+python tools/trading_rigor.py risk-reward --entry 100 --stop 95 --target 115
+```
+
+교차검증에서 편차 경고가 하나라도 있으면 종료 코드 1을 반환합니다 (스크립트에서 감지하기 쉽도록).

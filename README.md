@@ -16,6 +16,21 @@ Tool Layer    (tools/)    ← 정밀 계산 · 데이터 검증
 
 자세한 설명은 [docs/architecture.md](docs/architecture.md)를 참고하세요.
 
+## 설치
+
+```bash
+git clone https://github.com/TLSRUF/ai-trader-team.git
+cd ai-trader-team
+./scripts/install-claude-commands.sh
+```
+
+Claude Code에서 이 저장소를 열면 `/screen`, `/trade-team` 슬래시 커맨드를 바로 사용할 수 있습니다.
+
+```
+/screen AAA BBB CCC     # 저비용 스크리닝으로 후보를 먼저 거르고
+/trade-team AAA         # Pass한 종목만 4-agent 심층 분석
+```
+
 ## 폴더 구조
 
 | 폴더 | 역할 |

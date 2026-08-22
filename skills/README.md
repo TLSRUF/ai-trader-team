@@ -15,6 +15,9 @@
 
 ## 현재 정의된 스킬
 
-| 파일 | 커맨드 | 설명 |
-|---|---|---|
-| [`trade-team.md`](trade-team.md) | `/trade-team` | `agents/`의 4개 관점(추세·매크로·리스크·수급)을 병렬 실행해 하나의 리포트로 종합 |
+| 파일 | 커맨드 | 비용 | 설명 |
+|---|---|---|---|
+| [`screen.md`](screen.md) | `/screen` | 낮음 (단일 에이전트) | 7개 하드 메트릭으로 후보를 빠르게 Pass/Fail/Watch 판정 |
+| [`trade-team.md`](trade-team.md) | `/trade-team` | 높음 (4-agent 병렬) | `agents/`의 4개 관점(추세·매크로·리스크·수급)을 병렬 실행해 하나의 리포트로 종합 |
+
+**권장 흐름**: 후보가 여러 개면 `/screen`으로 먼저 거른 뒤, Pass한 종목만 `/trade-team`으로 심층 분석한다.

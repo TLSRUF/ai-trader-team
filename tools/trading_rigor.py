@@ -13,6 +13,9 @@ CLI 사용 예:
 
     python tools/trading_rigor.py risk-reward \\
         --entry 100 --stop 95 --target 115
+
+    python tools/trading_rigor.py correlation \\
+        --series-a '[1, 2, 3, 4, 5]' --series-b '[2, 3, 5, 4, 6]'
 """
 
 from __future__ import annotations
@@ -140,6 +143,50 @@ def risk_reward(entry, stop, target) -> dict:
     }
 
 
+def correlation(series_a: list, series_b: list) -> dict:
+    """두 시계열(예: 신규 포지션 후보 vs 기존 보유 포지션의 수익률)의 피어슨 상관계수를 계산한다.
+
+    리스크 관리자가 "분산 효과가 진짜 있는가"를 감으로 판단하지 않도록 하기 위한 함수다.
+
+    Args:
+        series_a: 숫자 리스트 (예: 일별 수익률).
+        series_b: series_a와 길이가 같은 숫자 리스트.
+
+    Returns:
+        n(데이터 포인트 수), correlation(피어슨 r, -1~1), level(낮음/중간/높음 — 절대값 기준).
+    """
+    a = [exact(v) for v in series_a]
+    b = [exact(v) for v in series_b]
+
+    if len(a) != len(b):
+        raise ValueError("두 시계열의 길이가 같아야 합니다.")
+    n = len(a)
+    if n < 3:
+        raise ValueError("상관관계 계산에는 최소 3개 이상의 데이터 포인트가 필요합니다.")
+
+    mean_a = sum(a) / n
+    mean_b = sum(b) / n
+    covariance = sum((x - mean_a) * (y - mean_b) for x, y in zip(a, b))
+    variance_a = sum((x - mean_a) ** 2 for x in a)
+    variance_b = sum((y - mean_b) ** 2 for y in b)
+
+    if variance_a == 0 or variance_b == 0:
+        raise ValueError("한쪽 시계열의 분산이 0이라 상관계수를 계산할 수 없습니다 (값이 모두 동일함).")
+
+    r = covariance / (variance_a * variance_b).sqrt()
+    r = max(Decimal("-1"), min(Decimal("1"), r))  # 반올림 오차로 -1/1을 살짝 벗어나는 것 방지
+    abs_r = abs(r)
+
+    if abs_r >= Decimal("0.7"):
+        level = "높음"
+    elif abs_r >= Decimal("0.3"):
+        level = "중간"
+    else:
+        level = "낮음"
+
+    return {"n": n, "correlation": str(r.quantize(Decimal("0.0001"))), "level": level}
+
+
 def _print_json(data: dict) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
@@ -167,6 +214,10 @@ def main(argv: list[str] | None = None) -> int:
     p_rr.add_argument("--stop", required=True, type=str, help="손절가")
     p_rr.add_argument("--target", required=True, type=str, help="목표가")
 
+    p_corr = sub.add_parser("correlation", help="두 시계열의 피어슨 상관계수를 계산한다")
+    p_corr.add_argument("--series-a", required=True, type=str, help='JSON 숫자 배열, 예: \'[1, 2, 3]\'')
+    p_corr.add_argument("--series-b", required=True, type=str, help="series-a와 길이가 같은 JSON 숫자 배열")
+
     args = parser.parse_args(argv)
 
     try:
@@ -177,6 +228,10 @@ def main(argv: list[str] | None = None) -> int:
             result = position_size(args.account, args.risk_pct, args.entry, args.stop)
         elif args.command == "risk-reward":
             result = risk_reward(args.entry, args.stop, args.target)
+        elif args.command == "correlation":
+            series_a = json.loads(args.series_a)
+            series_b = json.loads(args.series_b)
+            result = correlation(series_a, series_b)
         else:  # pragma: no cover - argparse가 이미 검증함
             parser.error(f"알 수 없는 커맨드: {args.command}")
             return 2

@@ -14,5 +14,6 @@
 |---|---|
 | [`examples/screen-example.md`](examples/screen-example.md) | `/screen` 출력 포맷 예시 (가상 데이터) |
 | [`examples/trade-team-example.md`](examples/trade-team-example.md) | `/trade-team` 출력 포맷 예시, Gray Zone 판정 포함 (가상 데이터) |
+| [`examples/position-review-example.md`](examples/position-review-example.md) | `/position-review` 출력 포맷 예시, trade-team-example.md의 DEMO-A를 이어받은 드리프트 판정 (가상 데이터) |
 
 실제 리포트는 아직 없습니다 — 스킬을 실제로 실행하면 이 폴더 루트에 쌓입니다.

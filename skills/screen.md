@@ -19,6 +19,8 @@ argument-hint: <티커1> <티커2> ...
 
 `$ARGUMENTS`는 공백으로 구분된 티커 목록이다 (예: `/screen AAA BBB CCC`).
 
+인자 없이 `/screen`만 호출되면 `reports/watchlist.md`의 "현재 워치리스트" 표에 있는 티커 전체를 대상으로 실행한다. 그 표도 비어 있으면 사용자에게 대상 티커를 요청하고 진행하지 않는다.
+
 ## 하드 메트릭 (7개, 전부 Pass/Fail 이진 판정)
 
 절충 없음 — 애매하면 Fail로 처리하고 사유에 "데이터 불충분"이라고 명시한다.
@@ -58,3 +60,4 @@ Pass 판정 종목만 `/trade-team <티커>`로 이어서 심층 분석하세요
 ## 참고 파일
 
 - `tools/trading_rigor.py`
+- `reports/watchlist.md` (인자 생략 시 대상 티커 조회)

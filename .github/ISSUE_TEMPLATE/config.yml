@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: CONTRIBUTING.md
+    url: https://github.com/TLSRUF/ai-trader-team/blob/main/CONTRIBUTING.md
+    about: 브랜치·이슈·PR·커밋 규칙 전체를 확인하세요.

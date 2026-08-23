@@ -36,7 +36,8 @@ import argparse
 import json
 import sys
 from decimal import Decimal, DecimalException, InvalidOperation
-from pathlib import Path
+
+from positions_ledger import parse_positions_table
 
 
 def _force_utf8_stdio() -> None:
@@ -274,6 +275,36 @@ def realized_pnl(entry, stop, target, exit_price) -> dict:
     }
 
 
+def unrealized_pnl(entry, stop, target, current_price) -> dict:
+    """보유 중인(청산 전) 포지션의 현재가 기준 미실현 손익을 계획한 리스크(1R) 대비 R-멀티플로 계산한다.
+
+    계산 로직은 `realized_pnl`과 완전히 동일하다(방향/1R 산정, R-멀티플 환산 공식).
+    다만 아직 청산되지 않은 포지션에 그대로 `realized_pnl`을 쓰면 "실현"이라는 이름이
+    오해를 부르므로, `/portfolio` 대시보드 등 보유 중 포지션에는 이 함수를 쓴다.
+    "승패(win/loss)"도 청산 완료를 암시할 수 있어 status는 profit/loss/breakeven으로 표기한다.
+
+    Args:
+        entry: 진입가.
+        stop: 손절가 (1R = |entry - stop|).
+        target: 목표가 (방향 판정 및 계획 R-멀티플 산정용).
+        current_price: 현재가 (실시간 조회값, 예: `tools/market_data.py quote`).
+
+    Returns:
+        direction, risk(1R), planned_r_multiple, unrealized_return_pct,
+        unrealized_r_multiple, status(profit/loss/breakeven).
+    """
+    result = realized_pnl(entry, stop, target, current_price)
+    status_map = {"win": "profit", "loss": "loss", "breakeven": "breakeven"}
+    return {
+        "direction": result["direction"],
+        "risk": result["risk"],
+        "planned_r_multiple": result["planned_r_multiple"],
+        "unrealized_return_pct": result["realized_return_pct"],
+        "unrealized_r_multiple": result["realized_r_multiple"],
+        "status": status_map[result["outcome"]],
+    }
+
+
 def correlation(series_a: list, series_b: list) -> dict:
     """두 시계열(예: 신규 포지션 후보 vs 기존 보유 포지션의 수익률)의 피어슨 상관계수를 계산한다.
 
@@ -375,36 +406,13 @@ def load_open_risk_pcts(positions_path) -> list[str]:
     Returns:
         보유중 포지션들의 계좌리스크% 문자열 리스트 (순서는 표 순서 그대로).
     """
-    path = Path(positions_path)
-    text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
-
-    header_idx = None
-    for i, line in enumerate(lines):
-        if line.strip().startswith("|") and "티커" in line and "계좌리스크%" in line:
-            header_idx = i
-            break
-    if header_idx is None:
-        raise ValueError(f"{path}에서 원장 표 헤더('| 티커 | ... | 계좌리스크% | ...')를 찾을 수 없습니다.")
-
-    headers = [h.strip() for h in lines[header_idx].strip().strip("|").split("|")]
-    try:
-        status_col = headers.index("상태")
-        risk_col = headers.index("계좌리스크%")
-    except ValueError as exc:
-        raise ValueError(f"원장 표 헤더에 '상태' 또는 '계좌리스크%' 열이 없습니다: {headers}") from exc
+    rows = parse_positions_table(positions_path)
 
     risk_pcts: list[str] = []
-    for line in lines[header_idx + 2 :]:  # +2: 헤더 다음의 '---' 구분선 건너뛰기
-        stripped = line.strip()
-        if not stripped.startswith("|"):
-            break  # 표가 끝남
-        cells = [c.strip() for c in stripped.strip("|").split("|")]
-        if len(cells) <= max(status_col, risk_col):
+    for row in rows:
+        if row.get("상태") != "보유중":
             continue
-        if cells[status_col] != "보유중":
-            continue
-        risk_value = cells[risk_col].rstrip("%").strip()
+        risk_value = row.get("계좌리스크%", "").rstrip("%").strip()
         if not risk_value:
             continue
         risk_pcts.append(risk_value)
@@ -450,6 +458,12 @@ def main(argv: list[str] | None = None) -> int:
     p_rp.add_argument("--target", required=True, type=str, help="목표가 (방향·계획 R 산정용)")
     p_rp.add_argument("--exit", required=True, type=str, dest="exit_price", help="실제 청산가")
 
+    p_up = sub.add_parser("unrealized-pnl", help="보유 중인 포지션의 미실현 손익을 R-멀티플로 계산한다")
+    p_up.add_argument("--entry", required=True, type=str, help="진입가")
+    p_up.add_argument("--stop", required=True, type=str, help="손절가")
+    p_up.add_argument("--target", required=True, type=str, help="목표가 (방향·계획 R 산정용)")
+    p_up.add_argument("--current", required=True, type=str, dest="current_price", help="현재가")
+
     p_corr = sub.add_parser("correlation", help="두 시계열의 피어슨 상관계수를 계산한다")
     p_corr.add_argument("--series-a", required=True, type=str, help='JSON 숫자 배열, 예: \'[1, 2, 3]\'')
     p_corr.add_argument("--series-b", required=True, type=str, help="series-a와 길이가 같은 JSON 숫자 배열")
@@ -476,6 +490,8 @@ def main(argv: list[str] | None = None) -> int:
             result = risk_reward(args.entry, args.stop, args.target)
         elif args.command == "realized-pnl":
             result = realized_pnl(args.entry, args.stop, args.target, args.exit_price)
+        elif args.command == "unrealized-pnl":
+            result = unrealized_pnl(args.entry, args.stop, args.target, args.current_price)
         elif args.command == "correlation":
             series_a = json.loads(args.series_a)
             series_b = json.loads(args.series_b)

@@ -37,18 +37,8 @@ import json
 import sys
 from decimal import Decimal, DecimalException, InvalidOperation
 
+from cli_utils import force_utf8_stdio
 from positions_ledger import parse_positions_table
-
-
-def _force_utf8_stdio() -> None:
-    """Windows 콘솔의 기본 코드페이지에서 이모지(⚠️) 출력이 깨지는 것을 방지한다."""
-    for stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(stream, "reconfigure", None)
-        if reconfigure is not None:
-            try:
-                reconfigure(encoding="utf-8")
-            except (ValueError, OSError):
-                pass
 
 
 def exact(value) -> Decimal:
@@ -429,7 +419,7 @@ def _print_json(data: dict) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    _force_utf8_stdio()
+    force_utf8_stdio()
 
     parser = argparse.ArgumentParser(
         prog="trading_rigor.py", description="결정론적 시세 교차검증 / 포지션 사이징 도구"

@@ -14,7 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 
-from check_skills import _parse_frontmatter, check_skill_file  # noqa: E402
+from check_skills import _parse_frontmatter, check_skill_file, find_orphaned_commands  # noqa: E402
 
 VALID_SKILL = """---
 description: 테스트용 설명
@@ -114,6 +114,39 @@ class TestCommandSync(unittest.TestCase):
             self._write(cmd_tmp, "demo-skill.md", VALID_SKILL)
             errors = check_skill_file(path, Path(cmd_tmp))
             self.assertEqual(errors, [])
+
+
+class TestFindOrphanedCommands(unittest.TestCase):
+    def _write(self, tmp_dir: str, name: str, content: str = "x") -> Path:
+        path = Path(tmp_dir) / name
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def test_no_orphans_when_fully_synced(self):
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            skill_files = [self._write(skills_tmp, "demo-skill.md")]
+            self._write(cmd_tmp, "demo-skill.md")
+            self.assertEqual(find_orphaned_commands(skill_files, Path(cmd_tmp)), [])
+
+    def test_detects_orphaned_command_file(self):
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            skill_files = [self._write(skills_tmp, "demo-skill.md")]
+            self._write(cmd_tmp, "demo-skill.md")
+            self._write(cmd_tmp, "renamed-away.md")  # skills/renamed-away.md는 이제 없음
+            self.assertEqual(find_orphaned_commands(skill_files, Path(cmd_tmp)), ["renamed-away.md"])
+
+    def test_readme_is_never_flagged_as_orphan(self):
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            skill_files = [self._write(skills_tmp, "demo-skill.md")]
+            self._write(cmd_tmp, "demo-skill.md")
+            self._write(cmd_tmp, "README.md")
+            self.assertEqual(find_orphaned_commands(skill_files, Path(cmd_tmp)), [])
+
+    def test_missing_commands_dir_returns_empty(self):
+        with tempfile.TemporaryDirectory() as skills_tmp:
+            skill_files = [self._write(skills_tmp, "demo-skill.md")]
+            missing_dir = Path(skills_tmp) / "does-not-exist"
+            self.assertEqual(find_orphaned_commands(skill_files, missing_dir), [])
 
 
 if __name__ == "__main__":

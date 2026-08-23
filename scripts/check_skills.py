@@ -14,6 +14,10 @@ install-claude-commands.sh가 조용히 프론트매터 없는 파일을 복사�
       한다 (`install-claude-commands.sh`로 만드는 생성물 — skills/*.md를 고친 뒤
       스크립트를 재실행하지 않으면 실제 Claude Code가 로드하는 커맨드가 구버전으로
       남는 드리프트를 CI 단계에서 잡아낸다).
+    - `.claude/commands/`에 대응하는 `skills/*.md`가 더 이상 없는 파일(고아 커맨드)이
+      없어야 한다 (스킬을 이름 변경/삭제한 뒤 재설치 스크립트를 돌리지 않으면, 이미
+      없어진 스킬의 구버전 슬래시 커맨드가 Claude Code에 계속 남아있게 되는 드리프트를
+      잡아낸다 — `install-claude-commands.sh`가 복사만 하고 정리는 하지 않기 때문).
 
 사용:
     python scripts/check_skills.py
@@ -100,6 +104,31 @@ def check_skill_file(path: Path, commands_dir: Path | None = None) -> list[str]:
     return errors
 
 
+def find_orphaned_commands(skill_files: list[Path], commands_dir: Path | None = None) -> list[str]:
+    """`.claude/commands/`에는 있지만 대응하는 `skills/*.md`가 없는 파일명 목록을 반환한다.
+
+    `install-claude-commands.sh`는 복사만 할 뿐 정리는 하지 않으므로, 스킬을 이름
+    변경/삭제해도 옛 커맨드 파일이 `.claude/commands/`에 그대로 남아 Claude Code에
+    구버전 슬래시 커맨드로 계속 노출될 수 있다. README.md는 커맨드가 아니므로 제외한다.
+
+    Args:
+        skill_files: 현재 유효한 `skills/*.md` 경로 목록 (README.md 제외, 검증 대상).
+        commands_dir: `.claude/commands/` 경로. 디렉터리가 없으면 빈 목록을 반환한다
+            (아직 한 번도 설치하지 않은 상태 — 다른 검증에서 이미 에러로 잡힌다).
+
+    Returns:
+        고아 커맨드 파일명 목록 (정렬됨).
+    """
+    if commands_dir is None:
+        commands_dir = COMMANDS_DIR
+    if not commands_dir.is_dir():
+        return []
+
+    valid_names = {p.name for p in skill_files}
+    command_names = {p.name for p in commands_dir.glob("*.md") if p.name != "README.md"}
+    return sorted(command_names - valid_names)
+
+
 def main() -> int:
     _force_utf8_stdio()
 
@@ -123,6 +152,13 @@ def main() -> int:
                 print(f"       - {err}")
         else:
             print(f"[OK]   {rel}")
+
+    orphans = find_orphaned_commands(skill_files)
+    if orphans:
+        had_error = True
+        print("[FAIL] .claude/commands/ 고아 파일 (대응하는 skills/*.md 없음)")
+        for name in orphans:
+            print(f"       - .claude/commands/{name} — 이름 변경/삭제된 스킬의 잔재로 보임. 직접 삭제할 것")
 
     if had_error:
         print("\n스킬 구조 검증 실패.", file=sys.stderr)

@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 import unittest
 from decimal import Decimal
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "tools"))
 
@@ -17,6 +19,7 @@ from trading_rigor import (  # noqa: E402
     correlation,
     cross_validate,
     exact,
+    load_open_risk_pcts,
     portfolio_heat,
     position_size,
     risk_reward,
@@ -136,6 +139,59 @@ class TestPortfolioHeat(unittest.TestCase):
     def test_default_max_heat_pct_is_six(self):
         result = portfolio_heat([2, 2])
         self.assertEqual(result["max_heat_pct"], "6")
+
+
+class TestLoadOpenRiskPcts(unittest.TestCase):
+    def _write(self, tmp_dir: str, content: str) -> Path:
+        path = Path(tmp_dir) / "positions.md"
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def test_collects_only_open_positions(self):
+        content = (
+            "# 보유 포지션 원장\n\n"
+            "## 현재 포지션\n\n"
+            "| 티커 | 상태 | 진입일 | 진입가 | 손절가 | 목표가 | 계좌리스크% | 최초 테제 | 비고 |\n"
+            "|---|---|---|---|---|---|---|---|---|\n"
+            "| AAPL | 보유중 | 2026-08-01 | 200 | 190 | 230 | 1.5 | t1 | |\n"
+            "| TSLA | 청산 (2026-08-10) | 2026-07-01 | 250 | 240 | 300 | 2 | t2 | |\n"
+            "| NVDA | 보유중 | 2026-08-15 | 120 | 110 | 150 | 2.5% | t3 | |\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, content)
+            result = load_open_risk_pcts(path)
+            self.assertEqual(result, ["1.5", "2.5"])
+
+    def test_skips_placeholder_row(self):
+        content = (
+            "| 티커 | 상태 | 진입일 | 진입가 | 손절가 | 목표가 | 계좌리스크% | 최초 테제 | 비고 |\n"
+            "|---|---|---|---|---|---|---|---|---|\n"
+            "| _(아직 기록된 포지션 없음)_ | | | | | | | | |\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, content)
+            self.assertEqual(load_open_risk_pcts(path), [])
+
+    def test_missing_header_raises(self):
+        content = "이 파일에는 원장 표가 없다.\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, content)
+            with self.assertRaises(ValueError):
+                load_open_risk_pcts(path)
+
+    def test_feeds_directly_into_portfolio_heat(self):
+        content = (
+            "| 티커 | 상태 | 진입일 | 진입가 | 손절가 | 목표가 | 계좌리스크% | 최초 테제 | 비고 |\n"
+            "|---|---|---|---|---|---|---|---|---|\n"
+            "| AAPL | 보유중 | 2026-08-01 | 200 | 190 | 230 | 3 | t1 | |\n"
+            "| NVDA | 보유중 | 2026-08-15 | 120 | 110 | 150 | 4 | t3 | |\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, content)
+            risk_pcts = load_open_risk_pcts(path)
+            result = portfolio_heat(risk_pcts)
+            self.assertEqual(result["total_risk_pct"], "7")
+            self.assertTrue(result["over_limit"])
 
 
 if __name__ == "__main__":

@@ -19,6 +19,9 @@ CLI 사용 예:
 
     python tools/trading_rigor.py portfolio-heat \\
         --risk-pcts '[1, 1.5, 2]' --max-heat-pct 6
+
+    python tools/trading_rigor.py portfolio-heat \\
+        --positions-file reports/positions.md --max-heat-pct 6
 """
 
 from __future__ import annotations
@@ -27,6 +30,7 @@ import argparse
 import json
 import sys
 from decimal import Decimal
+from pathlib import Path
 
 
 def _force_utf8_stdio() -> None:
@@ -233,6 +237,57 @@ def portfolio_heat(risk_pcts: list, max_heat_pct=6) -> dict:
     }
 
 
+def load_open_risk_pcts(positions_path) -> list[str]:
+    """`reports/positions.md` 형식의 원장에서 "보유중" 상태 행의 계좌리스크%를 모은다.
+
+    수동으로 `--risk-pcts`를 매번 다시 입력하는 대신, 원장(positions.md)을 단일
+    소스로 삼아 그 자리에서 파싱한다. "상태" 열이 정확히 "보유중"인 행만 집계하고
+    ("청산 (YYYY-MM-DD)" 등은 제외), 값이 비어 있는 행(예시 placeholder 행 포함)은
+    건너뛴다.
+
+    Args:
+        positions_path: `reports/positions.md` 경로.
+
+    Returns:
+        보유중 포지션들의 계좌리스크% 문자열 리스트 (순서는 표 순서 그대로).
+    """
+    path = Path(positions_path)
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+
+    header_idx = None
+    for i, line in enumerate(lines):
+        if line.strip().startswith("|") and "티커" in line and "계좌리스크%" in line:
+            header_idx = i
+            break
+    if header_idx is None:
+        raise ValueError(f"{path}에서 원장 표 헤더('| 티커 | ... | 계좌리스크% | ...')를 찾을 수 없습니다.")
+
+    headers = [h.strip() for h in lines[header_idx].strip().strip("|").split("|")]
+    try:
+        status_col = headers.index("상태")
+        risk_col = headers.index("계좌리스크%")
+    except ValueError as exc:
+        raise ValueError(f"원장 표 헤더에 '상태' 또는 '계좌리스크%' 열이 없습니다: {headers}") from exc
+
+    risk_pcts: list[str] = []
+    for line in lines[header_idx + 2 :]:  # +2: 헤더 다음의 '---' 구분선 건너뛰기
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            break  # 표가 끝남
+        cells = [c.strip() for c in stripped.strip("|").split("|")]
+        if len(cells) <= max(status_col, risk_col):
+            continue
+        if cells[status_col] != "보유중":
+            continue
+        risk_value = cells[risk_col].rstrip("%").strip()
+        if not risk_value:
+            continue
+        risk_pcts.append(risk_value)
+
+    return risk_pcts
+
+
 def _print_json(data: dict) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
@@ -265,7 +320,11 @@ def main(argv: list[str] | None = None) -> int:
     p_corr.add_argument("--series-b", required=True, type=str, help="series-a와 길이가 같은 JSON 숫자 배열")
 
     p_ph = sub.add_parser("portfolio-heat", help="보유 포지션 전체의 계좌 대비 리스크%를 합산한다")
-    p_ph.add_argument("--risk-pcts", required=True, type=str, help='JSON 숫자 배열, 예: \'[1, 1.5, 2]\'')
+    p_ph_source = p_ph.add_mutually_exclusive_group(required=True)
+    p_ph_source.add_argument("--risk-pcts", type=str, help='JSON 숫자 배열, 예: \'[1, 1.5, 2]\'')
+    p_ph_source.add_argument(
+        "--positions-file", type=str, help="reports/positions.md 경로 — '보유중' 행의 계좌리스크%를 자동으로 읽는다"
+    )
     p_ph.add_argument("--max-heat-pct", type=str, default="6", help="허용 한도 (%), 기본 6")
 
     args = parser.parse_args(argv)
@@ -283,12 +342,15 @@ def main(argv: list[str] | None = None) -> int:
             series_b = json.loads(args.series_b)
             result = correlation(series_a, series_b)
         elif args.command == "portfolio-heat":
-            risk_pcts = json.loads(args.risk_pcts)
+            if args.positions_file:
+                risk_pcts = load_open_risk_pcts(args.positions_file)
+            else:
+                risk_pcts = json.loads(args.risk_pcts)
             result = portfolio_heat(risk_pcts, args.max_heat_pct)
         else:  # pragma: no cover - argparse가 이미 검증함
             parser.error(f"알 수 없는 커맨드: {args.command}")
             return 2
-    except (ValueError, json.JSONDecodeError) as exc:
+    except (ValueError, json.JSONDecodeError, OSError) as exc:
         print(f"오류: {exc}", file=sys.stderr)
         return 1
 

@@ -7,7 +7,7 @@
 - **진입 시**: 이 표에 한 행을 추가한다. "최초 테제" 칸에는 되도록 `/trade-team` 실행 결과 리포트 경로(`reports/<날짜>-<티커>-trade-team.md`)를 링크한다. 리포트 없이 진입했다면 근거를 한두 문장으로 직접 요약해 적는다. "계좌리스크%" 칸은 `tools/trading_rigor.py position-size`의 `position_pct_of_account`(또는 직접 산정한 손절 시 손실률)를 적는다.
 - **청산 시**: 행을 삭제하지 않는다. "상태" 칸을 `청산 (YYYY-MM-DD)`로 갱신해 판단 이력을 보존한다.
 - **`/position-review` 조회 순서**: 이 파일에서 해당 티커 행을 먼저 찾는다 → 없으면 `reports/`에서 `<날짜>-<티커>-trade-team.md` 파일명 규칙으로 찾는다 → 그것도 없으면 사용자에게 최초 진입 근거를 요청한다.
-- **포트폴리오 히트 점검**: 새 포지션을 추가하기 전, "보유중" 상태인 행들의 계좌리스크%를 모아 `tools/trading_rigor.py portfolio-heat`로 합산 한도(기본 6%) 초과 여부를 확인한다.
+- **포트폴리오 히트 점검**: 새 포지션을 추가하기 전, `tools/trading_rigor.py portfolio-heat --positions-file reports/positions.md`로 "보유중" 상태인 행들의 계좌리스크% 합산이 한도(기본 6%)를 초과하는지 확인한다 (원장에서 자동으로 읽으므로 값을 손으로 다시 입력하지 않는다).
 - 이 파일에는 **실제 데이터만** 기록한다. 예시/가상 포지션은 여기 두지 않는다 (`reports/examples/` 참고).
 
 ## 현재 포지션

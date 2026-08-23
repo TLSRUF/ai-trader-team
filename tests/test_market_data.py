@@ -107,6 +107,23 @@ class TestGetHistory(unittest.TestCase):
         self.assertEqual(rows[1], {"date": "2023-01-04", "close": "124.14"})
 
     @patch("market_data.yf")
+    def test_nan_close_row_is_skipped_not_raised(self, mock_yf):
+        # yfinance가 특정 날짜에 결측치(NaN)를 반환하는 경우 — 예전에는
+        # Decimal("NaN").quantize()가 decimal.InvalidOperation으로 죽었다.
+        close_data = {
+            _FakeDate("2023-01-03"): 122.876,
+            _FakeDate("2023-01-04"): float("nan"),
+            _FakeDate("2023-01-05"): 124.144,
+        }
+        fake_df = MagicMock()
+        fake_df.empty = False
+        fake_df.__getitem__.return_value = _FakeClose(close_data)
+        mock_yf.download.return_value = fake_df
+
+        rows = market_data.get_history("aapl", "2023-01-01", "2023-01-06")
+        self.assertEqual(rows, [{"date": "2023-01-03", "close": "122.88"}, {"date": "2023-01-05", "close": "124.14"}])
+
+    @patch("market_data.yf")
     def test_empty_dataframe_raises(self, mock_yf):
         fake_df = MagicMock()
         fake_df.empty = True

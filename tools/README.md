@@ -5,6 +5,7 @@
 ## 규칙
 
 - 외부 의존성 최소화 (가능하면 표준 라이브러리만 사용)
+  - **예외**: 실시간/과거 "시세 조회"는 표준 라이브러리로 할 수 없는 일이라, `market_data.py` 한 파일에만 `yfinance`(무료, API 키 불필요)를 허용한다. 계산 계층(`trading_rigor.py`)은 계속 의존성 없이 유지한다 — `requirements.txt` 참고.
 - 부동소수점 오차가 문제되는 계산은 `Decimal` 등 정확한 타입 사용
 - CLI로 직접 실행 가능해야 함 (에이전트가 Bash로 호출)
 - 각 스크립트는 입력/출력 형식을 문서 상단 docstring에 명시
@@ -14,6 +15,14 @@
 | 파일 | 설명 |
 |---|---|
 | [`trading_rigor.py`](trading_rigor.py) | 시세/지표 교차검증, 리스크 기반 포지션 사이징(고정 비율/켈리 기준), 리스크·리워드 비율, 실현 손익(R-멀티플), 두 시계열 간 상관계수, 포트폴리오 전체 리스크(히트) 계산. `Decimal` 기반, 외부 의존성 없음, CLI(`argparse`)로 직접 실행 가능 |
+| [`market_data.py`](market_data.py) | `yfinance`로 실시간 현재가·과거 일별 종가를 조회. 계산은 하지 않고 조회한 값을 Decimal 문자열로 반환만 함 — 이후 계산은 `trading_rigor.py`를 거친다 |
+
+```bash
+python tools/market_data.py quote --ticker AAPL
+python tools/market_data.py history --ticker AAPL --start 2023-01-01 --end 2023-12-31
+```
+
+`quote`는 현재가(또는 가장 최근 종가)를, `history`는 기간별 일별 종가(배당·분할 조정됨)를 조회합니다. `pip install -r requirements.txt`로 `yfinance`를 먼저 설치해야 합니다. 존재하지 않는 티커·네트워크 실패 시 트레이스백 대신 `오류: ...` 메시지와 종료 코드 1을 반환합니다.
 
 ```bash
 python tools/trading_rigor.py cross-validate --field price --values '{"소스A": 101.2, "소스B": 101.5}'

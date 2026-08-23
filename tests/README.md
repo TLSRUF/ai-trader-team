@@ -13,6 +13,7 @@
 | [`test_market_data.py`](test_market_data.py) | `tools/market_data.py` — 시세 파싱·에러 처리 (`unittest.mock`으로 yfinance를 모킹, 실제 네트워크 호출 없음) |
 | [`test_positions_ledger.py`](test_positions_ledger.py) | `tools/positions_ledger.py` — 원장 표 파싱 |
 | [`test_portfolio_dashboard.py`](test_portfolio_dashboard.py) | `tools/portfolio_dashboard.py` — 집계 로직, 부분 실패 처리 (`market_data.get_quote`를 모킹, 실제 네트워크 호출 없음) |
+| [`test_backtest.py`](test_backtest.py) | `tools/backtest.py` — 진입/청산(손절·목표·타임아웃·데이터 종료)·다중 티커 집계 로직 (손으로 만든 고정 가격 시계열, 실제 네트워크 호출 없음) |
 
 개별 실행:
 
@@ -24,6 +25,7 @@ python -m unittest tests/test_check_agents.py -v
 python -m unittest tests/test_market_data.py -v
 python -m unittest tests/test_positions_ledger.py -v
 python -m unittest tests/test_portfolio_dashboard.py -v
+python -m unittest tests/test_backtest.py -v
 ```
 
 전체 실행 (CI와 동일):

@@ -29,4 +29,6 @@ yarn-error.log*
 logs/
 *.log
 
-# Generated (canonical source is skills/*.md — generated client formats are not committed here yet)
+# 참고: .claude/commands/*.md는 생성물이지만(canonical source는 skills/*.md) 여기서
+# 무시하지 않는다 — 저장소에 커밋해 실제 Claude Code가 바로 로드하고, install-claude-commands.sh
+# 재실행 후 scripts/check_skills.py가 CI에서 skills/*.md와의 동기화를 강제한다.

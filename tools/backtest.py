@@ -316,6 +316,15 @@ def walk_forward(
     """
     from datetime import date as _date
 
+    window_months = int(window_months)
+    step_months = int(step_months)
+    if window_months < 1:
+        raise ValueError("window_months는 1 이상이어야 합니다.")
+    if step_months < 1:
+        # step_months가 0 이하면 cursor가 매 반복에서 전혀 전진하지 않아(또는 뒤로 가서)
+        # 아래 while 루프가 끝나지 않는다 — 조용히 멈춰버리는 대신 여기서 명확히 막는다.
+        raise ValueError("step_months는 1 이상이어야 합니다 (0 이하면 윈도우가 전진하지 않아 무한 루프가 됩니다).")
+
     param_grid = param_grid or DEFAULT_WALK_FORWARD_PARAM_GRID
     start_d = _date.fromisoformat(start)
     end_d = _date.fromisoformat(end)

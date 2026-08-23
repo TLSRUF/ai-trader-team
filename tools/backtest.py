@@ -23,6 +23,16 @@ CLI 사용 예:
     python tools/backtest.py run --tickers '["AAPL", "MSFT", "NVDA"]' \\
         --start 2024-01-01 --end 2025-01-01 --sma-window 10 --stop-pct 3 \\
         --target-r 3 --max-hold-days 120 --risk-pct 1 --friction-pct 0.1
+
+    # 동시 보유 포지션 자본 제약 (포트폴리오 히트 한도)
+    python tools/backtest.py run --tickers '["AAPL", "MSFT", "NVDA"]' \\
+        --start 2024-01-01 --end 2025-01-01 --max-heat-pct 6
+
+    # 워크포워드 검증 — in-sample 구간에서만 파라미터를 고르고 미래를 보지 않은
+    # 다음 out-of-sample 구간에 적용해 과최적화 여부를 확인 (reports/2026-08-23-
+    # backtest-crypto-extension.md가 이 방식으로 자산군 간 일반화 실패를 확인함)
+    python tools/backtest.py walk-forward --tickers '["AAPL", "MSFT", "NVDA"]' \\
+        --start 2022-01-01 --end 2026-08-01 --window-months 12 --step-months 6
 """
 
 from __future__ import annotations

@@ -60,8 +60,21 @@ python tools/trading_rigor.py portfolio-heat --positions-file reports/positions.
 python tools/backtest.py run --ticker AAPL --start 2024-01-01 --end 2025-01-01
 python tools/backtest.py run --tickers '["AAPL", "MSFT", "NVDA"]' \
     --start 2024-01-01 --end 2025-01-01 --friction-pct 0.1
+
+# 동시 보유 포지션 자본 제약 (포트폴리오 히트 한도)
+python tools/backtest.py run --tickers '["AAPL", "MSFT", "NVDA"]' \
+    --start 2024-01-01 --end 2025-01-01 --max-heat-pct 6
+
+# 워크포워드 검증 — in-sample 구간에서만 파라미터를 고르고 그 결과를
+# 한 번도 보지 않은 다음 out-of-sample 구간에 적용해 과최적화 여부를 확인
+python tools/backtest.py walk-forward --tickers '["AAPL", "MSFT", "NVDA"]' \
+    --start 2022-01-01 --end 2026-08-01 --window-months 12 --step-months 6
 ```
 
 `backtest.py`는 이동평균(기본 10일) 상향 돌파를 진입 신호로, 고정 손절%(기본 3%)와 고정 목표 R-멀티플(기본 3R)을 청산 규칙으로 쓰는 기계적 전략을 시뮬레이션합니다. 여러 티커를 바스켓으로 넘기면 모든 거래를 청산일 순으로 합쳐 거래당 계좌 리스크%(기본 1%)만큼 복리로 누적한 총수익률을 계산합니다. 기본 파라미터는 2023~2025년·10/20종목 두 유니버스에서 교차 검증된 튜닝값입니다 (`reports/2026-08-23-backtest-comparison.md` 참고). `--friction-pct`로 수수료·슬리피지 근사치를 반영하면 더 보수적인 결과를 얻을 수 있습니다 (기본 0=무마찰).
+
+`--max-heat-pct`를 `run`/`walk-forward` 양쪽에 넘기면 `trading_rigor.py portfolio-heat`와 같은 개념으로 동시 보유 포지션의 자본 제약을 반영합니다 — 신규 진입 시점에 이미 열려 있는 포지션들의 리스크% 합이 한도를 넘으면 그 신호를 스킵합니다(`skipped_for_heat_limit`로 몇 건이 스킵됐는지 반환). 종목 수가 적어 동시 신호가 애초에 겹치지 않으면 한도를 걸어도 결과가 바뀌지 않을 수 있습니다.
+
+`walk-forward` 서브커맨드는 전체 기간에 파라미터를 맞춘 뒤 같은 기간으로 검증하는 과최적화(hindsight)를 피하기 위한 롤링 검증입니다. `--window-months`(in-sample, 기본 12) 구간에서 파라미터 그리드서치로 `total_return_pct`가 가장 높은 조합을 고르고, 그 파라미터를 한 번도 보지 않은 다음 `--step-months`(out-of-sample·롤링 스텝, 기본 6) 구간에 그대로 적용한 뒤 한 스텝씩 밀어가며 반복합니다. 기본 탐색 그리드(16개 조합, `sma_window` 10/20 × `stop_pct` 3/5 × `target_r` 2/3 × `max_hold_days` 60/120)는 `--param-grid`로 JSON 배열을 직접 넘겨 자산군별로 바꿀 수 있습니다(각 원소는 `sma_window`/`stop_pct`/`target_r_multiple`/`max_hold_days` 키를 정확히 가진 객체). 크립토 등 다른 자산군에 그대로 적용했을 때의 실제 검증 사례는 `reports/2026-08-23-backtest-crypto-extension.md`를 참고하세요 — 같은 전략이 자산군을 넘어 일반화되지 않는다는 결론입니다.
 
 > ⚠️ **`backtest.py`는 AI Trader Team의 4-agent 정성적 판단(`agents/*.md`)을 재현하지 않습니다.** 그 판단은 매번 LLM이 웹검색으로 그 시점의 최신 데이터를 확인하는 구조라, 과거 특정 시점의 시장/뉴스 상황을 재현해서 "그때 이 AI가 어떻게 판단했을지"를 기계적으로 재실행하는 건 불가능합니다(과거 데이터 재현 불가, 매 시점 LLM 재실행 비용도 비현실적). 대신 이 프로젝트가 갖춘 결정론적 규칙(`position-size`/`risk-reward`가 표현하는 방식)만 떼어낸 근사 전략입니다 — 결과를 해석할 때 이 한계를 항상 함께 고려하세요.

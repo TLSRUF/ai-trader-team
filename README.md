@@ -10,13 +10,15 @@
 
 ```
 Skill Layer   (skills/)   ← 시나리오별 진입점
-     ↓
+     ↓                        ↑
 Agent Layer   (agents/)   ← 관점별 병렬 서브에이전트
-     ↓
+     ↓                        ↑
 Tool Layer    (tools/)    ← 정밀 계산 · 데이터 검증
+     ↓                        ↑
+Report Layer  (reports/)  ← 원장·산출물, 다음 실행이 다시 읽어들이는 상태
 ```
 
-자세한 설명은 [docs/architecture.md](docs/architecture.md)를 참고하세요.
+계층별 자세한 설명은 [docs/architecture.md](docs/architecture.md)를 참고하세요.
 
 ## 설치
 
@@ -47,7 +49,7 @@ Claude Code에서 이 저장소를 열면 `/screen`, `/trade-team`, `/position-r
 | `reports/` | 실행 결과 리포트, 보유 포지션/워치리스트 원장 |
 | `scripts/` | 설치 · 동기화 스크립트 |
 | `docs/` | 설계 문서 |
-| `tests/` | `tools/` 스크립트 테스트 |
+| `tests/` | `tools/`, `scripts/` 스크립트 테스트 |
 
 ## 기여
 

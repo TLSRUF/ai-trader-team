@@ -13,16 +13,19 @@
 
 | 파일 | 설명 |
 |---|---|
-| [`trading_rigor.py`](trading_rigor.py) | 시세/지표 교차검증, 리스크 기반 포지션 사이징, 리스크·리워드 비율, 두 시계열 간 상관계수, 포트폴리오 전체 리스크(히트) 계산. `Decimal` 기반, 외부 의존성 없음, CLI(`argparse`)로 직접 실행 가능 |
+| [`trading_rigor.py`](trading_rigor.py) | 시세/지표 교차검증, 리스크 기반 포지션 사이징, 리스크·리워드 비율, 실현 손익(R-멀티플), 두 시계열 간 상관계수, 포트폴리오 전체 리스크(히트) 계산. `Decimal` 기반, 외부 의존성 없음, CLI(`argparse`)로 직접 실행 가능 |
 
 ```bash
 python tools/trading_rigor.py cross-validate --field price --values '{"소스A": 101.2, "소스B": 101.5}'
 python tools/trading_rigor.py position-size --account 10000 --risk-pct 1 --entry 100 --stop 95
 python tools/trading_rigor.py risk-reward --entry 100 --stop 95 --target 115
+python tools/trading_rigor.py realized-pnl --entry 100 --stop 95 --target 115 --exit 110
 python tools/trading_rigor.py correlation --series-a '[1, 2, 3, 4, 5]' --series-b '[2, 3, 5, 4, 6]'
 python tools/trading_rigor.py portfolio-heat --risk-pcts '[1, 1.5, 2]' --max-heat-pct 6
 python tools/trading_rigor.py portfolio-heat --positions-file reports/positions.md --max-heat-pct 6
 ```
+
+`realized-pnl`은 청산된 포지션의 실제 청산가를 계획했던 리스크(1R = |진입가-손절가|) 대비 R-멀티플로 환산합니다. 가격 등락률이 아니라 "계획한 리스크 대비 실제 성과"로 승패(win/loss/breakeven)를 일관되게 비교할 때 사용하며, 청산 후 회고를 위한 기반 계산입니다.
 
 `correlation`은 피어슨 상관계수(-1~1)와 함께 낮음(<0.3)/중간(0.3~0.7)/높음(≥0.7) 등급을 절대값 기준으로 반환합니다. 리스크 관리자가 "기존 보유 포지션과의 분산 효과"를 감이 아니라 수치로 판정할 때 사용합니다.
 

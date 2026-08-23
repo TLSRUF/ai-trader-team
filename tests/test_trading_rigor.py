@@ -22,6 +22,7 @@ from trading_rigor import (  # noqa: E402
     load_open_risk_pcts,
     portfolio_heat,
     position_size,
+    realized_pnl,
     risk_reward,
 )
 
@@ -85,6 +86,43 @@ class TestRiskReward(unittest.TestCase):
     def test_zero_risk_raises(self):
         with self.assertRaises(ValueError):
             risk_reward(entry=100, stop=100, target=110)
+
+
+class TestRealizedPnl(unittest.TestCase):
+    def test_long_win(self):
+        result = realized_pnl(entry=100, stop=95, target=115, exit_price=110)
+        self.assertEqual(result["direction"], "long")
+        self.assertEqual(result["risk"], "5")
+        self.assertEqual(result["planned_r_multiple"], "3.00")
+        self.assertEqual(result["realized_return_pct"], "10.00")
+        self.assertEqual(result["realized_r_multiple"], "2.00")
+        self.assertEqual(result["outcome"], "win")
+
+    def test_long_loss(self):
+        result = realized_pnl(entry=100, stop=95, target=115, exit_price=90)
+        self.assertEqual(result["realized_r_multiple"], "-2.00")
+        self.assertEqual(result["outcome"], "loss")
+
+    def test_long_breakeven(self):
+        result = realized_pnl(entry=100, stop=95, target=115, exit_price=100)
+        self.assertEqual(result["realized_r_multiple"], "0.00")
+        self.assertEqual(result["outcome"], "breakeven")
+
+    def test_short_win(self):
+        result = realized_pnl(entry=100, stop=105, target=85, exit_price=95)
+        self.assertEqual(result["direction"], "short")
+        self.assertEqual(result["realized_r_multiple"], "1.00")
+        self.assertEqual(result["outcome"], "win")
+
+    def test_short_loss(self):
+        result = realized_pnl(entry=100, stop=105, target=85, exit_price=108)
+        self.assertEqual(result["direction"], "short")
+        self.assertEqual(result["realized_r_multiple"], "-1.60")
+        self.assertEqual(result["outcome"], "loss")
+
+    def test_zero_risk_raises(self):
+        with self.assertRaises(ValueError):
+            realized_pnl(entry=100, stop=100, target=115, exit_price=110)
 
 
 class TestCorrelation(unittest.TestCase):

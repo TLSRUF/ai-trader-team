@@ -14,6 +14,9 @@ CLI 사용 예:
     python tools/trading_rigor.py risk-reward \\
         --entry 100 --stop 95 --target 115
 
+    python tools/trading_rigor.py realized-pnl \\
+        --entry 100 --stop 95 --target 115 --exit 110
+
     python tools/trading_rigor.py correlation \\
         --series-a '[1, 2, 3, 4, 5]' --series-b '[2, 3, 5, 4, 6]'
 
@@ -147,6 +150,61 @@ def risk_reward(entry, stop, target) -> dict:
         "risk": str(risk),
         "reward": str(reward),
         "risk_reward_ratio": str(ratio.quantize(Decimal("0.01"))),
+    }
+
+
+def realized_pnl(entry, stop, target, exit_price) -> dict:
+    """청산된 포지션의 실현 손익을 계획했던 리스크(1R) 대비 R-멀티플로 계산한다.
+
+    `risk_reward`가 진입 전 "계획"만 다룬다면, 이 함수는 실제 청산가로 "실제 결과"를
+    계산한다. 방향(long/short)과 1R(진입~손절 거리)은 `risk_reward`와 동일한 방식으로
+    정하고, 실제 청산가가 그 1R 대비 몇 배(R-멀티플)의 손익을 냈는지 환산한다.
+    가격 등락률이 아니라 "계획한 리스크 대비 성과"로 승패를 일관되게 비교하기 위함이다.
+
+    Args:
+        entry: 진입가.
+        stop: 손절가 (1R = |entry - stop|).
+        target: 목표가 (방향 판정 및 계획 R-멀티플 산정용, `risk_reward`와 동일).
+        exit_price: 실제 청산가.
+
+    Returns:
+        direction, risk(1R), planned_r_multiple(계획했던 목표 R), realized_return_pct,
+        realized_r_multiple, outcome(win/loss/breakeven).
+    """
+    entry_d = exact(entry)
+    stop_d = exact(stop)
+    target_d = exact(target)
+    exit_d = exact(exit_price)
+
+    risk = abs(entry_d - stop_d)
+    if risk == 0:
+        raise ValueError("진입가와 손절가가 같으면 리스크(1R)가 0이 되어 계산할 수 없습니다.")
+
+    direction = "long" if target_d > entry_d else "short"
+    planned_r_multiple = abs(target_d - entry_d) / risk
+
+    if direction == "long":
+        realized_move = exit_d - entry_d
+    else:
+        realized_move = entry_d - exit_d
+
+    realized_return_pct = (realized_move / entry_d) * 100
+    realized_r_multiple = realized_move / risk
+
+    if realized_r_multiple > 0:
+        outcome = "win"
+    elif realized_r_multiple < 0:
+        outcome = "loss"
+    else:
+        outcome = "breakeven"
+
+    return {
+        "direction": direction,
+        "risk": str(risk),
+        "planned_r_multiple": str(planned_r_multiple.quantize(Decimal("0.01"))),
+        "realized_return_pct": str(realized_return_pct.quantize(Decimal("0.01"))),
+        "realized_r_multiple": str(realized_r_multiple.quantize(Decimal("0.01"))),
+        "outcome": outcome,
     }
 
 
@@ -315,6 +373,12 @@ def main(argv: list[str] | None = None) -> int:
     p_rr.add_argument("--stop", required=True, type=str, help="손절가")
     p_rr.add_argument("--target", required=True, type=str, help="목표가")
 
+    p_rp = sub.add_parser("realized-pnl", help="청산된 포지션의 실현 손익을 R-멀티플로 계산한다")
+    p_rp.add_argument("--entry", required=True, type=str, help="진입가")
+    p_rp.add_argument("--stop", required=True, type=str, help="손절가")
+    p_rp.add_argument("--target", required=True, type=str, help="목표가 (방향·계획 R 산정용)")
+    p_rp.add_argument("--exit", required=True, type=str, dest="exit_price", help="실제 청산가")
+
     p_corr = sub.add_parser("correlation", help="두 시계열의 피어슨 상관계수를 계산한다")
     p_corr.add_argument("--series-a", required=True, type=str, help='JSON 숫자 배열, 예: \'[1, 2, 3]\'')
     p_corr.add_argument("--series-b", required=True, type=str, help="series-a와 길이가 같은 JSON 숫자 배열")
@@ -337,6 +401,8 @@ def main(argv: list[str] | None = None) -> int:
             result = position_size(args.account, args.risk_pct, args.entry, args.stop)
         elif args.command == "risk-reward":
             result = risk_reward(args.entry, args.stop, args.target)
+        elif args.command == "realized-pnl":
+            result = realized_pnl(args.entry, args.stop, args.target, args.exit_price)
         elif args.command == "correlation":
             series_a = json.loads(args.series_a)
             series_b = json.loads(args.series_b)

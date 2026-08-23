@@ -138,6 +138,22 @@ class TestCliErrorHandling(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("오류", err)
 
+    def test_non_numeric_input_returns_1_not_traceback(self):
+        # exact()가 decimal.InvalidOperation을 잡아주기 전엔 CLI가 트레이스백을 그대로 뱉었다.
+        code, _, err = run_cli(
+            ["risk-reward", "--entry", "not-a-number", "--stop", "95", "--target", "115"]
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("오류", err)
+
+    def test_zero_entry_realized_pnl_returns_1_not_traceback(self):
+        # entry=0 → decimal.DivisionByZero가 잡히기 전엔 CLI가 트레이스백을 그대로 뱉었다.
+        code, _, err = run_cli(
+            ["realized-pnl", "--entry", "0", "--stop", "5", "--target", "15", "--exit", "3"]
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("오류", err)
+
     def test_missing_required_arg_exits_2(self):
         code, _, _ = run_cli(["risk-reward", "--entry", "100", "--stop", "95"])  # --target 누락
         self.assertEqual(code, 2)

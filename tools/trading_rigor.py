@@ -35,7 +35,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from decimal import Decimal
+from decimal import Decimal, DecimalException, InvalidOperation
 from pathlib import Path
 
 
@@ -54,12 +54,16 @@ def exact(value) -> Decimal:
     """숫자를 정확한 Decimal로 변환한다.
 
     float은 문자열을 경유해서 변환해 부동소수점 오차(예: 0.1 + 0.2 != 0.3)를 피한다.
+    숫자로 변환할 수 없는 값(예: 오타, 빈 문자열)은 처리되지 않은
+    decimal.InvalidOperation 트레이스백 대신 명확한 ValueError로 알린다 —
+    모든 서브커맨드가 공통으로 이 함수를 거치므로 여기서 한 번에 막는다.
     """
     if isinstance(value, Decimal):
         return value
-    if isinstance(value, float):
+    try:
         return Decimal(str(value))
-    return Decimal(str(value))
+    except InvalidOperation as exc:
+        raise ValueError(f"'{value}'을(를) 숫자로 변환할 수 없습니다.") from exc
 
 
 def cross_validate(field: str, values: dict) -> dict:
@@ -116,6 +120,8 @@ def position_size(account_size, risk_pct, entry, stop) -> dict:
         raise ValueError("진입가와 손절가가 같으면 손절 폭이 0이 되어 계산할 수 없습니다.")
     if account_size_d <= 0:
         raise ValueError("계좌 규모는 0보다 커야 합니다.")
+    if risk_pct_d <= 0:
+        raise ValueError("허용 리스크 비율은 0보다 커야 합니다 (음수/0을 넣으면 포지션 크기가 무의미해집니다).")
 
     risk_amount = account_size_d * (risk_pct_d / Decimal(100))
     stop_distance = abs(entry_d - stop_d)
@@ -232,6 +238,9 @@ def realized_pnl(entry, stop, target, exit_price) -> dict:
     stop_d = exact(stop)
     target_d = exact(target)
     exit_d = exact(exit_price)
+
+    if entry_d == 0:
+        raise ValueError("진입가가 0이면 실현 수익률(%)을 계산할 수 없습니다.")
 
     risk = abs(entry_d - stop_d)
     if risk == 0:
@@ -480,7 +489,7 @@ def main(argv: list[str] | None = None) -> int:
         else:  # pragma: no cover - argparse가 이미 검증함
             parser.error(f"알 수 없는 커맨드: {args.command}")
             return 2
-    except (ValueError, json.JSONDecodeError, OSError) as exc:
+    except (ValueError, json.JSONDecodeError, OSError, DecimalException) as exc:
         print(f"오류: {exc}", file=sys.stderr)
         return 1
 

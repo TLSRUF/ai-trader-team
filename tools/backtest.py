@@ -258,6 +258,26 @@ def _slice_history(closes: list[dict], start: str, end: str) -> list[dict]:
     return [row for row in closes if start <= row["date"] < end]
 
 
+_PARAM_GRID_KEYS = ("sma_window", "stop_pct", "target_r_multiple", "max_hold_days")
+
+
+def _validate_param_grid(param_grid) -> list[dict[str, str]]:
+    """CLI `--param-grid`로 들어온 JSON을 검증한다.
+
+    `simulate_trend_strategy(**params)`에 그대로 펼쳐 넣기 때문에, 키가 하나라도
+    빠지거나 오타가 있으면 그리드서치 도중 알아보기 힘든 TypeError로 죽는다 —
+    그 전에 명확한 ValueError로 미리 걸러낸다.
+    """
+    if not isinstance(param_grid, list) or not param_grid:
+        raise ValueError("--param-grid는 비어 있지 않은 JSON 배열이어야 합니다.")
+    for i, params in enumerate(param_grid):
+        if not isinstance(params, dict) or set(params) != set(_PARAM_GRID_KEYS):
+            raise ValueError(
+                f"--param-grid[{i}]는 {sorted(_PARAM_GRID_KEYS)} 키를 정확히 가진 객체여야 합니다: {params!r}"
+            )
+    return param_grid
+
+
 def walk_forward(
     histories: dict[str, list[dict]],
     start: str,
@@ -426,6 +446,14 @@ def main(argv: list[str] | None = None) -> int:
     p_wf.add_argument("--risk-pct", type=str, default="1", help="거래당 계좌 리스크 비율(%), 기본 1")
     p_wf.add_argument("--friction-pct", type=str, default="0", help="거래 왕복 비용(%), 기본 0")
     p_wf.add_argument("--max-heat-pct", type=str, default=None, help="동시 보유 포지션 총 리스크%% 한도")
+    p_wf.add_argument(
+        "--param-grid",
+        type=str,
+        default=None,
+        help="탐색할 파라미터 조합의 JSON 배열, 각 원소는 sma_window/stop_pct/target_r_multiple/"
+        "max_hold_days 키를 모두 가진 객체. 생략 시 DEFAULT_WALK_FORWARD_PARAM_GRID(16개 조합) 사용. "
+        '예: \'[{"sma_window": "10", "stop_pct": "8", "target_r_multiple": "2", "max_hold_days": "60"}]\'',
+    )
 
     args = parser.parse_args(argv)
 
@@ -451,6 +479,7 @@ def main(argv: list[str] | None = None) -> int:
             if not tickers:
                 raise ValueError("최소 1개 이상의 티커가 필요합니다.")
             histories = {ticker: market_data.get_history(ticker, args.start, args.end) for ticker in tickers}
+            param_grid = _validate_param_grid(json.loads(args.param_grid)) if args.param_grid else None
             result = walk_forward(
                 histories,
                 args.start,
@@ -460,6 +489,7 @@ def main(argv: list[str] | None = None) -> int:
                 risk_pct_per_trade=args.risk_pct,
                 friction_pct=args.friction_pct,
                 max_heat_pct=args.max_heat_pct,
+                param_grid=param_grid,
             )
         else:  # pragma: no cover - argparse가 이미 검증함
             parser.error(f"알 수 없는 커맨드: {args.command}")

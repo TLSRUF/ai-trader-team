@@ -23,3 +23,6 @@ jobs:
 
       - name: Check skills structure
         run: python scripts/check_skills.py
+
+      - name: Check agents structure
+        run: python scripts/check_agents.py

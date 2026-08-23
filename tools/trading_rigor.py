@@ -349,7 +349,7 @@ def correlation(series_a: list, series_b: list) -> dict:
     return {"n": n, "correlation": str(r.quantize(Decimal("0.0001"))), "level": level}
 
 
-def portfolio_heat(risk_pcts: list, max_heat_pct=6) -> dict:
+def portfolio_heat(risk_pcts: list, max_heat_pct=6, allow_empty=False) -> dict:
     """동시 보유 중인 모든 포지션의 계좌 대비 리스크%(손절 시 손실률)를 합산한다.
 
     개별 트레이드의 리스크·리워드는 괜찮아 보여도, 여러 포지션의 손절이 동시에
@@ -361,18 +361,22 @@ def portfolio_heat(risk_pcts: list, max_heat_pct=6) -> dict:
             결과 중 risk_amount / account_size * 100, 또는 직접 산정한 값).
         max_heat_pct: 허용 한도(%). 기본 6 — 흔히 쓰이는 "전체 포지션 손절 시
             손실 6% 이내" 관행값이며, 근거가 있다면 다른 값으로 조정 가능하다.
+        allow_empty: True면 risk_pcts가 비어 있어도 오류 대신 0건/0% 결과를 반환한다.
+            원장(`reports/positions.md`)에 "보유중" 행이 하나도 없는(=아직 첫 포지션도
+            없는) 정상적인 상태를 표현할 때 쓴다. 기본 False — `--risk-pcts`로 빈 배열을
+            직접 넘기는 것은 대개 호출 실수이므로 그 경로는 계속 오류로 취급한다.
 
     Returns:
         n_positions, total_risk_pct, max_heat_pct, over_limit, warnings.
     """
-    if not risk_pcts:
+    if not risk_pcts and not allow_empty:
         raise ValueError("최소 1개 이상의 포지션 리스크%가 필요합니다.")
 
     values = [exact(v) for v in risk_pcts]
     if any(v < 0 for v in values):
         raise ValueError("리스크%는 음수일 수 없습니다.")
 
-    total = sum(values)
+    total = sum(values, Decimal("0"))
     max_heat = exact(max_heat_pct)
     over_limit = total > max_heat
 
@@ -499,9 +503,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "portfolio-heat":
             if args.positions_file:
                 risk_pcts = load_open_risk_pcts(args.positions_file)
+                result = portfolio_heat(risk_pcts, args.max_heat_pct, allow_empty=True)
             else:
                 risk_pcts = json.loads(args.risk_pcts)
-            result = portfolio_heat(risk_pcts, args.max_heat_pct)
+                result = portfolio_heat(risk_pcts, args.max_heat_pct)
         else:  # pragma: no cover - argparse가 이미 검증함
             parser.error(f"알 수 없는 커맨드: {args.command}")
             return 2

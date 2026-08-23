@@ -263,6 +263,13 @@ class TestPortfolioHeat(unittest.TestCase):
         result = portfolio_heat([2, 2])
         self.assertEqual(result["max_heat_pct"], "6")
 
+    def test_allow_empty_returns_zero_heat_instead_of_raising(self):
+        result = portfolio_heat([], allow_empty=True)
+        self.assertEqual(result["n_positions"], 0)
+        self.assertEqual(result["total_risk_pct"], "0")
+        self.assertFalse(result["over_limit"])
+        self.assertEqual(result["warnings"], [])
+
 
 class TestLoadOpenRiskPcts(unittest.TestCase):
     def _write(self, tmp_dir: str, content: str) -> Path:
@@ -315,6 +322,23 @@ class TestLoadOpenRiskPcts(unittest.TestCase):
             result = portfolio_heat(risk_pcts)
             self.assertEqual(result["total_risk_pct"], "7")
             self.assertTrue(result["over_limit"])
+
+    def test_empty_ledger_feeds_into_portfolio_heat_without_raising(self):
+        # reports/positions.md의 실제 초기 상태(placeholder 행만 있는 빈 원장)를
+        # 그대로 portfolio-heat --positions-file로 넘겨도(allow_empty=True) 첫
+        # 포지션을 추가하기 전 정상적으로 0% 히트를 돌려줘야 한다.
+        content = (
+            "| 티커 | 상태 | 진입일 | 진입가 | 손절가 | 목표가 | 계좌리스크% | 최초 테제 | 비고 |\n"
+            "|---|---|---|---|---|---|---|---|---|\n"
+            "| _(아직 기록된 포지션 없음)_ | | | | | | | | |\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, content)
+            risk_pcts = load_open_risk_pcts(path)
+            result = portfolio_heat(risk_pcts, allow_empty=True)
+            self.assertEqual(result["n_positions"], 0)
+            self.assertEqual(result["total_risk_pct"], "0")
+            self.assertFalse(result["over_limit"])
 
 
 if __name__ == "__main__":

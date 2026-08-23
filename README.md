@@ -42,6 +42,33 @@ Claude Code에서 이 저장소를 열면 `/screen`, `/trade-team`, `/position-r
 
 **권장 흐름**: `/screen`으로 후보를 거르고 → Pass한 종목만 `/trade-team`으로 심층 분석해서 진입 판단하고 → 진입 후에는 `/position-review`로 테제 드리프트를 주기적으로 점검하고 `/portfolio`로 실시간 손익을 확인하며 → 청산 후에는 `/post-mortem`으로 회고합니다. 보유 포지션과 관심 종목은 각각 `reports/positions.md`, `reports/watchlist.md`에 원장으로 남아 다음 실행 때 자동으로 조회됩니다.
 
+## 백테스트 (`tools/backtest.py`)
+
+4-agent 정성적 판단(위 스킬들)과는 별도로, 이 프로젝트가 이미 갖춘 결정론적 규칙만 떼어낸
+기계적 추세추종 전략을 과거 데이터로 검증하는 도구입니다. **LLM의 정성적 판단을 재현하지
+않습니다** — 매 시점의 뉴스·맥락을 과거로 되돌릴 수 없기 때문입니다. 대신 "이동평균 상향
+돌파 + 고정%손절 + 고정 R:R 목표가"라는 근사 전략의 자산군별·기간별 강건성을 확인하는 용도로
+씁니다.
+
+```bash
+# 단순 실행 — 마찰비용(수수료+슬리피지 근사) 반영
+python tools/backtest.py run --tickers '["AAPL","MSFT","NVDA"]' \
+    --start 2023-01-01 --end 2026-08-01 --friction-pct 0.1
+
+# 동시 보유 포지션 자본 제약(포트폴리오 히트 한도) 반영
+python tools/backtest.py run --tickers '["AAPL","MSFT","NVDA"]' \
+    --start 2023-01-01 --end 2026-08-01 --max-heat-pct 6
+
+# 워크포워드 검증 — in-sample 구간에서만 파라미터를 고르고
+# 한 번도 보지 않은 다음 구간에 적용해 과최적화 여부를 확인
+python tools/backtest.py walk-forward --tickers '["AAPL","MSFT","NVDA"]' \
+    --start 2022-01-01 --end 2026-08-01 --window-months 12 --step-months 6
+```
+
+실제 검증 결과는 `reports/2026-08-23-backtest-comparison.md`(미국 대형주 파라미터 튜닝)와
+`reports/2026-08-23-backtest-crypto-extension.md`(크립토 확장 검증 — 같은 전략이 자산군을
+넘어 일반화되지 않는다는 결론)를 참고하세요.
+
 ## 폴더 구조
 
 | 폴더 | 역할 |

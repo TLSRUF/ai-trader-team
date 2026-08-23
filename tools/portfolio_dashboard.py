@@ -26,18 +26,8 @@ import sys
 
 import market_data
 import trading_rigor
+from cli_utils import force_utf8_stdio
 from positions_ledger import parse_positions_table
-
-
-def _force_utf8_stdio() -> None:
-    """Windows 콘솔의 기본 코드페이지에서 한글 출력이 깨지는 것을 방지한다."""
-    for stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(stream, "reconfigure", None)
-        if reconfigure is not None:
-            try:
-                reconfigure(encoding="utf-8")
-            except (ValueError, OSError):
-                pass
 
 
 def build_dashboard(positions_path) -> dict:
@@ -100,7 +90,7 @@ def build_dashboard(positions_path) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    _force_utf8_stdio()
+    force_utf8_stdio()
 
     parser = argparse.ArgumentParser(prog="portfolio_dashboard.py", description="보유 포지션 실시간 대시보드")
     parser.add_argument(

@@ -19,6 +19,7 @@ from trading_rigor import (  # noqa: E402
     correlation,
     cross_validate,
     exact,
+    kelly_criterion,
     load_open_risk_pcts,
     portfolio_heat,
     position_size,
@@ -70,6 +71,41 @@ class TestPositionSize(unittest.TestCase):
     def test_non_positive_account_raises(self):
         with self.assertRaises(ValueError):
             position_size(account_size=0, risk_pct=1, entry=100, stop=95)
+
+
+class TestKellyCriterion(unittest.TestCase):
+    def test_has_edge_no_warning(self):
+        # p=0.55, b=2 → f* = 0.55 - 0.45/2 = 0.325
+        result = kelly_criterion(win_rate_pct=55, avg_win=200, avg_loss=100)
+        self.assertEqual(result["payoff_ratio"], "2.00")
+        self.assertEqual(result["full_kelly_pct"], "32.50")
+        self.assertEqual(result["half_kelly_pct"], "16.25")
+        self.assertEqual(result["quarter_kelly_pct"], "8.12")
+        self.assertTrue(result["has_edge"])
+        self.assertEqual(result["warnings"], [])
+
+    def test_no_edge_warns(self):
+        # p=0.3, b=1 → f* = 0.3 - 0.7/1 = -0.4
+        result = kelly_criterion(win_rate_pct=30, avg_win=100, avg_loss=100)
+        self.assertEqual(result["full_kelly_pct"], "-40.00")
+        self.assertFalse(result["has_edge"])
+        self.assertEqual(len(result["warnings"]), 1)
+
+    def test_win_rate_must_be_below_100(self):
+        with self.assertRaises(ValueError):
+            kelly_criterion(win_rate_pct=100, avg_win=100, avg_loss=100)
+
+    def test_win_rate_must_be_above_0(self):
+        with self.assertRaises(ValueError):
+            kelly_criterion(win_rate_pct=0, avg_win=100, avg_loss=100)
+
+    def test_zero_avg_loss_raises(self):
+        with self.assertRaises(ValueError):
+            kelly_criterion(win_rate_pct=55, avg_win=200, avg_loss=0)
+
+    def test_negative_avg_win_raises(self):
+        with self.assertRaises(ValueError):
+            kelly_criterion(win_rate_pct=55, avg_win=-200, avg_loss=100)
 
 
 class TestRiskReward(unittest.TestCase):

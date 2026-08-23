@@ -13,17 +13,20 @@
 
 | 파일 | 설명 |
 |---|---|
-| [`trading_rigor.py`](trading_rigor.py) | 시세/지표 교차검증, 리스크 기반 포지션 사이징, 리스크·리워드 비율, 실현 손익(R-멀티플), 두 시계열 간 상관계수, 포트폴리오 전체 리스크(히트) 계산. `Decimal` 기반, 외부 의존성 없음, CLI(`argparse`)로 직접 실행 가능 |
+| [`trading_rigor.py`](trading_rigor.py) | 시세/지표 교차검증, 리스크 기반 포지션 사이징(고정 비율/켈리 기준), 리스크·리워드 비율, 실현 손익(R-멀티플), 두 시계열 간 상관계수, 포트폴리오 전체 리스크(히트) 계산. `Decimal` 기반, 외부 의존성 없음, CLI(`argparse`)로 직접 실행 가능 |
 
 ```bash
 python tools/trading_rigor.py cross-validate --field price --values '{"소스A": 101.2, "소스B": 101.5}'
 python tools/trading_rigor.py position-size --account 10000 --risk-pct 1 --entry 100 --stop 95
+python tools/trading_rigor.py kelly --win-rate 55 --avg-win 200 --avg-loss 100
 python tools/trading_rigor.py risk-reward --entry 100 --stop 95 --target 115
 python tools/trading_rigor.py realized-pnl --entry 100 --stop 95 --target 115 --exit 110
 python tools/trading_rigor.py correlation --series-a '[1, 2, 3, 4, 5]' --series-b '[2, 3, 5, 4, 6]'
 python tools/trading_rigor.py portfolio-heat --risk-pcts '[1, 1.5, 2]' --max-heat-pct 6
 python tools/trading_rigor.py portfolio-heat --positions-file reports/positions.md --max-heat-pct 6
 ```
+
+`kelly`는 승률(%)과 손익비(평균 승리/평균 손실)로 켈리 기준 최적 베팅 비율을 계산합니다. 전액 켈리(`full_kelly_pct`)는 파산 위험이 커서 실전에서 그대로 쓰지 않는 것이 일반적이므로, 흔히 쓰이는 half-Kelly·quarter-Kelly도 함께 반환합니다. 비율이 0 이하면(통계적 우위 없음) 경고와 함께 종료 코드 1을 반환합니다. `position-size`가 사용자가 정한 고정 리스크 비율로 사이징한다면, `kelly`는 과거 성과(예: `/post-mortem`으로 쌓인 승/패 기록)로부터 비율을 역산합니다.
 
 `realized-pnl`은 청산된 포지션의 실제 청산가를 계획했던 리스크(1R = |진입가-손절가|) 대비 R-멀티플로 환산합니다. 가격 등락률이 아니라 "계획한 리스크 대비 실제 성과"로 승패(win/loss/breakeven)를 일관되게 비교할 때 사용하며, 청산 후 회고를 위한 기반 계산입니다.
 

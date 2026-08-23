@@ -8,7 +8,14 @@ on:
 
 jobs:
   unittest:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 실제 사용자가 개발하는 환경(Windows)을 CI에도 반영한다 — ubuntu만 돌리면
+        # tools/cli_utils.py의 Windows 콘솔 UTF-8 인코딩 처리 같은 플랫폼 특정
+        # 동작을 CI가 전혀 검증하지 못한다.
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -48,6 +48,24 @@ if [ "$count" -eq 0 ]; then
   exit 1
 fi
 
+# 스킬을 이름 변경/삭제했는데 .claude/commands/ 에 옛 파일이 그대로 남아있으면(고아
+# 커맨드), 복사만으로는 이 드리프트가 정리되지 않는다 — 대응하는 skills/*.md가 더
+# 이상 없는 파일을 찾아 함께 삭제한다 (연관배열 없이, bash 3.2 등 구버전도 호환).
+removed=0
+for dest_file in "$DEST_DIR"/*.md; do
+  [ -e "$dest_file" ] || continue
+  base="$(basename "$dest_file")"
+  [ "$base" = "README.md" ] && continue
+  if [ ! -e "$SRC_DIR/$base" ]; then
+    rm "$dest_file"
+    echo "정리됨: .claude/commands/$base (대응하는 skills/$base 없음 — 고아 커맨드)"
+    removed=$((removed + 1))
+  fi
+done
+
 echo ""
 echo "총 ${count}개 커맨드를 .claude/commands/ 에 설치했습니다."
+if [ "$removed" -gt 0 ]; then
+  echo "고아 커맨드 ${removed}개를 정리했습니다."
+fi
 echo "Claude Code에서 이 저장소를 열면 /screen, /trade-team 등이 바로 사용 가능합니다."

@@ -6,8 +6,8 @@
 
 | 파일 | 대상 |
 |---|---|
-| [`test_trading_rigor.py`](test_trading_rigor.py) | `tools/trading_rigor.py` — 교차검증, 포지션 사이징, 리스크·리워드, 상관관계, 포트폴리오 히트 계산 |
-| [`test_check_skills.py`](test_check_skills.py) | `scripts/check_skills.py` — 프론트매터 파싱, 스킬 파일 구조 검증 |
+| [`test_trading_rigor.py`](test_trading_rigor.py) | `tools/trading_rigor.py` — 교차검증, 포지션 사이징, 리스크·리워드, 실현 손익(R-멀티플), 상관관계, 포트폴리오 히트 계산 |
+| [`test_check_skills.py`](test_check_skills.py) | `scripts/check_skills.py` — 프론트매터 파싱, 스킬 파일 구조 검증, `.claude/commands/*.md` 동기화 검증 |
 
 개별 실행:
 

@@ -25,6 +25,9 @@ CLI 사용 예:
 
     python tools/trading_rigor.py portfolio-heat \\
         --positions-file reports/positions.md --max-heat-pct 6
+
+    python tools/trading_rigor.py kelly \\
+        --win-rate 55 --avg-win 200 --avg-loss 100
 """
 
 from __future__ import annotations
@@ -127,6 +130,60 @@ def position_size(account_size, risk_pct, entry, stop) -> dict:
         "position_pct_of_account": str(
             (position_value / account_size_d * 100).quantize(Decimal("0.01"))
         ),
+    }
+
+
+def kelly_criterion(win_rate_pct, avg_win, avg_loss) -> dict:
+    """승률과 손익비(평균 승리/평균 손실)로 켈리 기준 최적 베팅 비율을 계산한다.
+
+    f* = p - q/b  (p=승률, q=1-p, b=평균 승리 금액/평균 손실 금액)
+
+    `position_size`가 "계좌의 몇 %를 리스크로 걸 것인가"를 사용자가 직접 정하는
+    고정 비율 방식이라면, 이 함수는 과거 성과(예: `/post-mortem`으로 쌓인 승/패
+    기록)로부터 통계적으로 최적인 비율을 역산한다. 전액 켈리(full Kelly)는 표본
+    오차·연속 손실 시 파산 위험이 커서 실전에서 그대로 쓰지 않는 것이 일반적이므로,
+    흔히 쓰이는 half-Kelly(1/2)·quarter-Kelly(1/4)도 함께 반환한다.
+
+    Args:
+        win_rate_pct: 승률(%). 0과 100 사이(양 끝값 제외) — 0%/100%는 표본이
+            없거나 예외적인 상황이라 사이징 근거로 쓰기엔 부적절하다.
+        avg_win: 평균 승리 금액(또는 R-멀티플 등 동일 단위). 0보다 커야 한다.
+        avg_loss: 평균 손실 금액. **절댓값**으로 입력한다 (0보다 커야 한다).
+
+    Returns:
+        win_rate_pct, payoff_ratio(b), full/half/quarter_kelly_pct, has_edge,
+        warnings (켈리 비율이 0 이하면 통계적 우위가 없다는 경고).
+    """
+    win_rate = exact(win_rate_pct)
+    avg_win_d = exact(avg_win)
+    avg_loss_d = exact(avg_loss)
+
+    if not (0 < win_rate < 100):
+        raise ValueError("승률은 0%보다 크고 100%보다 작아야 합니다 (0%/100%는 표본 부족 또는 예외적 상황).")
+    if avg_win_d <= 0 or avg_loss_d <= 0:
+        raise ValueError("평균 승리 금액과 평균 손실 금액은 모두 0보다 커야 합니다 (손실은 절댓값으로 입력).")
+
+    p = win_rate / Decimal(100)
+    q = 1 - p
+    payoff_ratio = avg_win_d / avg_loss_d
+    full_kelly = p - (q / payoff_ratio)
+
+    warnings: list[str] = []
+    has_edge = full_kelly > 0
+    if not has_edge:
+        warnings.append(
+            f"⚠️ 켈리 비율이 {(full_kelly * 100).quantize(Decimal('0.01'))}%로 0 이하입니다 "
+            "— 이 승률/손익비 조합에는 통계적 우위가 없어 베팅하지 않는 것이 최적입니다."
+        )
+
+    return {
+        "win_rate_pct": str(win_rate),
+        "payoff_ratio": str(payoff_ratio.quantize(Decimal("0.01"))),
+        "full_kelly_pct": str((full_kelly * 100).quantize(Decimal("0.01"))),
+        "half_kelly_pct": str((full_kelly * 100 / 2).quantize(Decimal("0.01"))),
+        "quarter_kelly_pct": str((full_kelly * 100 / 4).quantize(Decimal("0.01"))),
+        "has_edge": has_edge,
+        "warnings": warnings,
     }
 
 
@@ -368,6 +425,11 @@ def main(argv: list[str] | None = None) -> int:
     p_ps.add_argument("--entry", required=True, type=str, help="진입가")
     p_ps.add_argument("--stop", required=True, type=str, help="손절가")
 
+    p_kelly = sub.add_parser("kelly", help="승률·손익비로 켈리 기준 최적 베팅 비율을 계산한다")
+    p_kelly.add_argument("--win-rate", required=True, type=str, help="승률 (%, 0~100 사이)")
+    p_kelly.add_argument("--avg-win", required=True, type=str, help="평균 승리 금액")
+    p_kelly.add_argument("--avg-loss", required=True, type=str, help="평균 손실 금액 (절댓값)")
+
     p_rr = sub.add_parser("risk-reward", help="리스크·리워드 비율을 계산한다")
     p_rr.add_argument("--entry", required=True, type=str, help="진입가")
     p_rr.add_argument("--stop", required=True, type=str, help="손절가")
@@ -399,6 +461,8 @@ def main(argv: list[str] | None = None) -> int:
             result = cross_validate(args.field, values)
         elif args.command == "position-size":
             result = position_size(args.account, args.risk_pct, args.entry, args.stop)
+        elif args.command == "kelly":
+            result = kelly_criterion(args.win_rate, args.avg_win, args.avg_loss)
         elif args.command == "risk-reward":
             result = risk_reward(args.entry, args.stop, args.target)
         elif args.command == "realized-pnl":

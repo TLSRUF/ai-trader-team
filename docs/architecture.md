@@ -43,12 +43,15 @@ Report Layer  (reports/)  ← 원장·산출물 — 스킬 실행 간 상태를 
   이어주는 역할을 한다.
 - **원장 2종**: `positions.md`(보유 포지션), `watchlist.md`(관심 종목) — 실제 데이터만
   기록하며, `/position-review`·`/screen`이 인자 없이 호출되면 이 표를 조회 대상으로 삼는다.
-- **실행 산출물**: `/trade-team` 실행 결과는 `reports/<날짜>-<티커>-trade-team.md`로 저장되고,
-  `/position-review`가 최초 테제를 조회할 때 (원장에 링크가 없으면) 이 파일명 규칙으로 찾는다.
+  `/post-mortem`은 같은 원장의 "청산가" 칸을 조회해 실현 손익을 계산한다.
+- **실행 산출물**: `/trade-team`·`/position-review`·`/post-mortem` 실행 결과는 각각
+  `reports/<날짜>-<티커>-<스킬명>.md`로 저장된다. `/position-review`가 최초 테제를 조회할 때
+  (원장에 링크가 없으면) `trade-team` 리포트를 이 파일명 규칙으로 찾고, `/post-mortem`도
+  귀인 분석을 위해 같은 방식으로 최초 `trade-team` 리포트를 찾는다.
 - **예시 문서**: `reports/examples/`에만 가상 데이터를 두어, 실제 원장/리포트와 절대 섞이지
   않게 분리한다.
 - 이 계층 덕분에 스킬들이 서로 독립적으로 실행돼도(`/screen` → `/trade-team` →
-  `/position-review`) 매번 사용자에게 같은 정보를 다시 물어보지 않는다.
+  `/position-review` → `/post-mortem`) 매번 사용자에게 같은 정보를 다시 물어보지 않는다.
 
 ## 부가 계층 — 구조 검증 (`scripts/`)
 

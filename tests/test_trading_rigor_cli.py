@@ -91,6 +91,14 @@ class TestCliSubcommands(unittest.TestCase):
         result = json.loads(out)
         self.assertEqual(result["outcome"], "win")
 
+    def test_unrealized_pnl_success(self):
+        code, out, _ = run_cli(
+            ["unrealized-pnl", "--entry", "100", "--stop", "95", "--target", "115", "--current", "108"]
+        )
+        self.assertEqual(code, 0)
+        result = json.loads(out)
+        self.assertEqual(result["status"], "profit")
+
     def test_correlation_success(self):
         code, out, _ = run_cli(
             ["correlation", "--series-a", "[1,2,3]", "--series-b", "[2,4,6]"]

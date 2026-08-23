@@ -25,6 +25,7 @@ from trading_rigor import (  # noqa: E402
     position_size,
     realized_pnl,
     risk_reward,
+    unrealized_pnl,
 )
 
 
@@ -178,6 +179,35 @@ class TestRealizedPnl(unittest.TestCase):
         # 이전엔 entry=0일 때 decimal.DivisionByZero가 그대로 새어나갔다.
         with self.assertRaises(ValueError):
             realized_pnl(entry=0, stop=5, target=15, exit_price=3)
+
+
+class TestUnrealizedPnl(unittest.TestCase):
+    def test_same_math_as_realized_pnl_with_renamed_keys(self):
+        realized = realized_pnl(entry=100, stop=95, target=115, exit_price=110)
+        unrealized = unrealized_pnl(entry=100, stop=95, target=115, current_price=110)
+        self.assertEqual(unrealized["direction"], realized["direction"])
+        self.assertEqual(unrealized["risk"], realized["risk"])
+        self.assertEqual(unrealized["planned_r_multiple"], realized["planned_r_multiple"])
+        self.assertEqual(unrealized["unrealized_return_pct"], realized["realized_return_pct"])
+        self.assertEqual(unrealized["unrealized_r_multiple"], realized["realized_r_multiple"])
+
+    def test_status_uses_profit_not_win(self):
+        # "win/loss"는 청산 완료를 암시할 수 있어 status는 profit/loss/breakeven을 쓴다.
+        result = unrealized_pnl(entry=100, stop=95, target=115, current_price=110)
+        self.assertEqual(result["status"], "profit")
+        self.assertNotIn("outcome", result)
+
+    def test_loss_status(self):
+        result = unrealized_pnl(entry=100, stop=95, target=115, current_price=90)
+        self.assertEqual(result["status"], "loss")
+
+    def test_breakeven_status(self):
+        result = unrealized_pnl(entry=100, stop=95, target=115, current_price=100)
+        self.assertEqual(result["status"], "breakeven")
+
+    def test_zero_risk_raises(self):
+        with self.assertRaises(ValueError):
+            unrealized_pnl(entry=100, stop=100, target=115, current_price=110)
 
 
 class TestCorrelation(unittest.TestCase):

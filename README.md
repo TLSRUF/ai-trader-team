@@ -25,6 +25,7 @@ Report Layer  (reports/)  ← 원장·산출물, 다음 실행이 다시 읽어�
 ```bash
 git clone https://github.com/TLSRUF/ai-trader-team.git
 cd ai-trader-team
+pip install -r requirements.txt   # 실시간/과거 시세 조회(market_data.py)에 필요
 ./scripts/install-claude-commands.sh
 ```
 

@@ -12,12 +12,17 @@
 사이징(position-size가 표현하는 방식) — 만 떼어내 기계적으로 근사한 전략을
 시뮬레이션한다. 결과를 해석할 때 이 한계를 항상 함께 언급할 것.
 
+기본 파라미터(sma=10 / stop=3% / target-r=3 / max-hold=120)는 2023~2025년,
+10종목/20종목 두 유니버스에서 교차 검증된 튜닝값이다 (reports/2026-08-23-backtest-
+comparison.md 참고). `--friction-pct`로 수수료·슬리피지 근사치를 반영하면 더 보수적인
+(현실적인) 결과를 얻을 수 있다 — 기본값은 무마찰(0)이라 실제보다 낙관적일 수 있다.
+
 CLI 사용 예:
     python tools/backtest.py run --ticker AAPL --start 2024-01-01 --end 2025-01-01
 
     python tools/backtest.py run --tickers '["AAPL", "MSFT", "NVDA"]' \\
-        --start 2024-01-01 --end 2025-01-01 --sma-window 20 --stop-pct 5 \\
-        --target-r 2 --risk-pct 1
+        --start 2024-01-01 --end 2025-01-01 --sma-window 10 --stop-pct 3 \\
+        --target-r 3 --max-hold-days 120 --risk-pct 1 --friction-pct 0.1
 """
 
 from __future__ import annotations
@@ -37,6 +42,7 @@ def simulate_trend_strategy(
     stop_pct="5",
     target_r_multiple="2",
     max_hold_days=60,
+    friction_pct="0",
 ) -> list[dict]:
     """SMA 상향 돌파 진입 + 고정% 손절 + 고정 R:R 목표가 전략을 단일 티커에 시뮬레이션한다.
 
@@ -47,6 +53,10 @@ def simulate_trend_strategy(
         stop_pct: 손절 폭(%, 진입가 대비). 예: "5" → 진입가의 5% 아래가 손절가.
         target_r_multiple: 목표 R-멀티플. 예: "2" → 손절폭의 2배를 목표 수익폭으로.
         max_hold_days: 최대 보유일. 이 기간 내 손절/목표 미도달이면 그날 종가로 청산(timeout).
+        friction_pct: 거래 왕복 비용(수수료+슬리피지 근사, % of 진입가). 기본 0(무마찰,
+            하위 호환). 실제 체결에서는 특히 손절가가 갭으로 뚫리는 경우 등 이론값보다
+            불리하게 체결되므로, 현실적인 수치(예: 0.1)를 넣으면 모든 거래의 R-멀티플에서
+            이 비용만큼 차감해 더 보수적인(현실적인) 결과를 얻을 수 있다.
 
     Returns:
         거래 리스트. 각 항목: entry_date, exit_date, entry, exit, r_multiple, reason
@@ -56,6 +66,9 @@ def simulate_trend_strategy(
     stop_pct_d = exact(stop_pct)
     target_r_d = exact(target_r_multiple)
     max_hold_days = int(max_hold_days)
+    friction_pct_d = exact(friction_pct)
+    if friction_pct_d < 0:
+        raise ValueError("friction_pct는 음수일 수 없습니다.")
 
     if sma_window < 1:
         raise ValueError("sma_window는 1 이상이어야 합니다.")
@@ -104,6 +117,7 @@ def simulate_trend_strategy(
         if reason:
             risk = entry_price - stop_price
             r_multiple = (exit_price - entry_price) / risk
+            r_multiple -= (entry_price * friction_pct_d / 100) / risk  # 왕복 마찰비용 차감
             trades.append(
                 {
                     "entry_date": entry_date,
@@ -121,6 +135,7 @@ def simulate_trend_strategy(
         # 조용히 누락시키지 않는다 (미실현 손익도 결과에 포함).
         risk = entry_price - stop_price
         r_multiple = (prices[-1] - entry_price) / risk
+        r_multiple -= (entry_price * friction_pct_d / 100) / risk
         trades.append(
             {
                 "entry_date": entry_date,
@@ -209,11 +224,17 @@ def main(argv: list[str] | None = None) -> int:
     src.add_argument("--tickers", type=str, help='JSON 문자열 배열, 예: \'["AAPL", "MSFT"]\'')
     p_run.add_argument("--start", required=True, help="시작일 (YYYY-MM-DD)")
     p_run.add_argument("--end", required=True, help="종료일 (YYYY-MM-DD)")
-    p_run.add_argument("--sma-window", type=str, default="20", help="이동평균 기간(거래일), 기본 20")
-    p_run.add_argument("--stop-pct", type=str, default="5", help="손절 폭(%, 진입가 대비), 기본 5")
-    p_run.add_argument("--target-r", type=str, default="2", help="목표 R-멀티플, 기본 2")
-    p_run.add_argument("--max-hold-days", type=str, default="60", help="최대 보유일, 기본 60")
+    # 기본값은 2023~2025년, 10종목/20종목 두 유니버스에서 교차 검증된 튜닝값이다
+    # (reports/2026-08-23-backtest-comparison.md 참고). 최초 기본값(20/5/2/60)보다
+    # 세 연도 모두 일관되게 우수했다 — 특정 연도에만 맞춘 과적합이 아님을 확인했다.
+    p_run.add_argument("--sma-window", type=str, default="10", help="이동평균 기간(거래일), 기본 10")
+    p_run.add_argument("--stop-pct", type=str, default="3", help="손절 폭(%, 진입가 대비), 기본 3")
+    p_run.add_argument("--target-r", type=str, default="3", help="목표 R-멀티플, 기본 3")
+    p_run.add_argument("--max-hold-days", type=str, default="120", help="최대 보유일, 기본 120")
     p_run.add_argument("--risk-pct", type=str, default="1", help="거래당 계좌 리스크 비율(%), 기본 1")
+    p_run.add_argument(
+        "--friction-pct", type=str, default="0", help="거래 왕복 비용(수수료+슬리피지 근사, %), 기본 0(무마찰)"
+    )
 
     args = parser.parse_args(argv)
 
@@ -231,6 +252,7 @@ def main(argv: list[str] | None = None) -> int:
                     stop_pct=args.stop_pct,
                     target_r_multiple=args.target_r,
                     max_hold_days=args.max_hold_days,
+                    friction_pct=args.friction_pct,
                 )
             result = aggregate_results(trades_by_ticker, args.risk_pct)
         else:  # pragma: no cover - argparse가 이미 검증함

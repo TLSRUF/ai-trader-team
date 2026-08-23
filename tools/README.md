@@ -59,9 +59,9 @@ python tools/trading_rigor.py portfolio-heat --positions-file reports/positions.
 ```bash
 python tools/backtest.py run --ticker AAPL --start 2024-01-01 --end 2025-01-01
 python tools/backtest.py run --tickers '["AAPL", "MSFT", "NVDA"]' \
-    --start 2024-01-01 --end 2025-01-01 --sma-window 20 --stop-pct 5 --target-r 2 --risk-pct 1
+    --start 2024-01-01 --end 2025-01-01 --friction-pct 0.1
 ```
 
-`backtest.py`는 이동평균(기본 20일) 상향 돌파를 진입 신호로, 고정 손절%(기본 5%)와 고정 목표 R-멀티플(기본 2R)을 청산 규칙으로 쓰는 기계적 전략을 시뮬레이션합니다. 여러 티커를 바스켓으로 넘기면 모든 거래를 청산일 순으로 합쳐 거래당 계좌 리스크%(기본 1%)만큼 복리로 누적한 총수익률을 계산합니다.
+`backtest.py`는 이동평균(기본 10일) 상향 돌파를 진입 신호로, 고정 손절%(기본 3%)와 고정 목표 R-멀티플(기본 3R)을 청산 규칙으로 쓰는 기계적 전략을 시뮬레이션합니다. 여러 티커를 바스켓으로 넘기면 모든 거래를 청산일 순으로 합쳐 거래당 계좌 리스크%(기본 1%)만큼 복리로 누적한 총수익률을 계산합니다. 기본 파라미터는 2023~2025년·10/20종목 두 유니버스에서 교차 검증된 튜닝값입니다 (`reports/2026-08-23-backtest-comparison.md` 참고). `--friction-pct`로 수수료·슬리피지 근사치를 반영하면 더 보수적인 결과를 얻을 수 있습니다 (기본 0=무마찰).
 
 > ⚠️ **`backtest.py`는 AI Trader Team의 4-agent 정성적 판단(`agents/*.md`)을 재현하지 않습니다.** 그 판단은 매번 LLM이 웹검색으로 그 시점의 최신 데이터를 확인하는 구조라, 과거 특정 시점의 시장/뉴스 상황을 재현해서 "그때 이 AI가 어떻게 판단했을지"를 기계적으로 재실행하는 건 불가능합니다(과거 데이터 재현 불가, 매 시점 LLM 재실행 비용도 비현실적). 대신 이 프로젝트가 갖춘 결정론적 규칙(`position-size`/`risk-reward`가 표현하는 방식)만 떼어낸 근사 전략입니다 — 결과를 해석할 때 이 한계를 항상 함께 고려하세요.

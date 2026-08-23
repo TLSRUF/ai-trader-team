@@ -81,6 +81,23 @@ class TestSimulateTrendStrategy(unittest.TestCase):
         with self.assertRaises(ValueError):
             simulate_trend_strategy(_closes([100] * 30), sma_window=0)
 
+    def test_friction_pct_reduces_r_multiple(self):
+        flat = [100] * 21
+        breakout = [110]
+        rally = [115, 121, 121]
+        closes = _closes(flat + breakout + rally)
+        no_friction = simulate_trend_strategy(closes, sma_window=20, stop_pct="5", target_r_multiple="2")
+        with_friction = simulate_trend_strategy(
+            closes, sma_window=20, stop_pct="5", target_r_multiple="2", friction_pct="1"
+        )
+        self.assertEqual(no_friction[0]["r_multiple"], "2.00")
+        # friction_pct=1% of 진입가(110)=1.10, risk=5.5 → 1.10/5.5=0.20R 차감
+        self.assertEqual(with_friction[0]["r_multiple"], "1.80")
+
+    def test_negative_friction_pct_raises(self):
+        with self.assertRaises(ValueError):
+            simulate_trend_strategy(_closes([100] * 30), sma_window=20, friction_pct="-1")
+
 
 class TestAggregateResults(unittest.TestCase):
     def test_compounds_across_tickers_by_exit_date(self):

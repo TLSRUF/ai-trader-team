@@ -213,6 +213,23 @@ class TestWalkForward(unittest.TestCase):
         with self.assertRaises(ValueError):
             walk_forward({"AAA": closes}, "2024-01-01", "2024-06-01", window_months=12, step_months=6)
 
+    def test_zero_step_months_raises_instead_of_hanging(self):
+        # step_months<=0이면 롤링 커서가 전혀 전진하지 않아 while 루프가 끝나지 않는다
+        # (과거의 무한 루프 버그) — 조용히 멈추는 대신 명확한 ValueError로 막는다.
+        closes = _closes([100] * 731, start_date="2024-01-01")
+        with self.assertRaises(ValueError):
+            walk_forward({"AAA": closes}, "2024-01-01", "2026-01-01", window_months=12, step_months=0)
+
+    def test_negative_step_months_raises(self):
+        closes = _closes([100] * 731, start_date="2024-01-01")
+        with self.assertRaises(ValueError):
+            walk_forward({"AAA": closes}, "2024-01-01", "2026-01-01", window_months=12, step_months=-1)
+
+    def test_zero_window_months_raises(self):
+        closes = _closes([100] * 731, start_date="2024-01-01")
+        with self.assertRaises(ValueError):
+            walk_forward({"AAA": closes}, "2024-01-01", "2026-01-01", window_months=0, step_months=6)
+
     def test_windows_are_sequential_and_non_overlapping_with_flat_prices(self):
         # 2024-01-01 ~ 2026-01-01(24개월), 가격이 평평해 돌파 신호가 전혀 없다 →
         # 모든 파라미터 조합의 in-sample 성과가 0이므로 그리드의 첫 조합이 선택되고,

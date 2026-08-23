@@ -13,7 +13,14 @@ from decimal import Decimal
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "tools"))
 
-from trading_rigor import cross_validate, exact, position_size, risk_reward  # noqa: E402
+from trading_rigor import (  # noqa: E402
+    correlation,
+    cross_validate,
+    exact,
+    portfolio_heat,
+    position_size,
+    risk_reward,
+)
 
 
 class TestExact(unittest.TestCase):
@@ -75,6 +82,60 @@ class TestRiskReward(unittest.TestCase):
     def test_zero_risk_raises(self):
         with self.assertRaises(ValueError):
             risk_reward(entry=100, stop=100, target=110)
+
+
+class TestCorrelation(unittest.TestCase):
+    def test_requires_equal_length(self):
+        with self.assertRaises(ValueError):
+            correlation([1, 2, 3], [1, 2])
+
+    def test_requires_at_least_three_points(self):
+        with self.assertRaises(ValueError):
+            correlation([1, 2], [1, 2])
+
+    def test_perfect_positive_correlation(self):
+        result = correlation([1, 2, 3, 4], [2, 4, 6, 8])
+        self.assertEqual(result["correlation"], "1.0000")
+        self.assertEqual(result["level"], "높음")
+
+    def test_perfect_negative_correlation(self):
+        result = correlation([1, 2, 3, 4], [8, 6, 4, 2])
+        self.assertEqual(result["correlation"], "-1.0000")
+        self.assertEqual(result["level"], "높음")
+
+    def test_zero_variance_raises(self):
+        with self.assertRaises(ValueError):
+            correlation([1, 1, 1], [1, 2, 3])
+
+    def test_low_correlation_level(self):
+        result = correlation([1, 2, 3, 4, 5, 6, 7], [4, 1, 5, 9, 2, 6, 3])
+        self.assertEqual(result["level"], "낮음")
+
+
+class TestPortfolioHeat(unittest.TestCase):
+    def test_requires_at_least_one_position(self):
+        with self.assertRaises(ValueError):
+            portfolio_heat([])
+
+    def test_rejects_negative_risk(self):
+        with self.assertRaises(ValueError):
+            portfolio_heat([1, -0.5])
+
+    def test_under_limit_no_warning(self):
+        result = portfolio_heat([1, 1.5, 2], max_heat_pct=6)
+        self.assertEqual(result["total_risk_pct"], "4.5")
+        self.assertFalse(result["over_limit"])
+        self.assertEqual(result["warnings"], [])
+
+    def test_over_limit_warns(self):
+        result = portfolio_heat([3, 2, 2.5], max_heat_pct=6)
+        self.assertEqual(result["total_risk_pct"], "7.5")
+        self.assertTrue(result["over_limit"])
+        self.assertEqual(len(result["warnings"]), 1)
+
+    def test_default_max_heat_pct_is_six(self):
+        result = portfolio_heat([2, 2])
+        self.assertEqual(result["max_heat_pct"], "6")
 
 
 if __name__ == "__main__":

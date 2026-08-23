@@ -35,6 +35,10 @@ Report Layer  (reports/)  ← 원장·산출물 — 스킬 실행 간 상태를 
 - `tools/*.py`(또는 다른 언어) — 서술(LLM)과 계산을 분리
 - 부동소수점 오차, 단위 혼동(예: 통화 단위) 같은 실수를 원천 차단
 - CLI로 호출 가능해야 하며, 에이전트는 결과를 그대로 인용
+- 예외적으로 `tools/backtest.py`는 대응하는 스킬이 없는 독립 도구다 — Skill/Agent
+  Layer의 4-agent 정성적 판단을 재현하지 않고, 그 판단에서 결정론적으로 표현 가능한
+  부분(추세추종 진입·고정%손절·고정 R:R 목표가)만 떼어내 과거 데이터로 검증한다.
+  자세한 사용법은 [`tools/README.md`](../tools/README.md) 참고.
 
 ## Report Layer
 

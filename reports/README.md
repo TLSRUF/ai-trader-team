@@ -25,5 +25,4 @@
 | [`examples/trade-team-example.md`](examples/trade-team-example.md) | `/trade-team` 출력 포맷 예시, Gray Zone 판정 포함 (가상 데이터) |
 | [`examples/position-review-example.md`](examples/position-review-example.md) | `/position-review` 출력 포맷 예시, trade-team-example.md의 DEMO-A를 이어받은 드리프트 판정 (가상 데이터) |
 | [`examples/post-mortem-example.md`](examples/post-mortem-example.md) | `/post-mortem` 출력 포맷 예시, position-review-example.md의 DEMO-A 축소 검토 이후 청산까지 이어지는 회고 (가상 데이터) |
-
-실제 리포트는 아직 없습니다 — 스킬을 실제로 실행하면 이 폴더 루트에 쌓입니다.
+| [`2026-08-23-backtest-comparison.md`](2026-08-23-backtest-comparison.md) | `tools/backtest.py`로 실행한 실제 백테스트 결과와 xbtlin/ai-berkshire 자기보고 수치 비교 (실제 데이터, 한계·주의사항 명시) |

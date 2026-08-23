@@ -20,5 +20,6 @@
 | [`screen.md`](screen.md) | `/screen` | 낮음 (단일 에이전트) | 7개 하드 메트릭으로 후보를 빠르게 Pass/Fail/Watch 판정 |
 | [`trade-team.md`](trade-team.md) | `/trade-team` | 높음 (4-agent 병렬) | `agents/`의 4개 관점(추세·매크로·리스크·수급)을 병렬 실행해 하나의 리포트로 종합 |
 | [`position-review.md`](position-review.md) | `/position-review` | 낮음 (단일 에이전트) | 보유 포지션의 최초 진입 근거가 여전히 유효한지 재점검, 드리프트 판정 |
+| [`post-mortem.md`](post-mortem.md) | `/post-mortem` | 낮음 (단일 에이전트) | 청산된 포지션의 실현 손익(R-멀티플)과 판단 귀인을 정리하고 교훈을 기록 |
 
-**권장 흐름**: 후보가 여러 개면 `/screen`으로 먼저 거른 뒤, Pass한 종목만 `/trade-team`으로 심층 분석한다. 진입 후에는 주기적으로 `/position-review`로 테제 드리프트를 점검한다.
+**권장 흐름**: 후보가 여러 개면 `/screen`으로 먼저 거른 뒤, Pass한 종목만 `/trade-team`으로 심층 분석한다. 진입 후에는 주기적으로 `/position-review`로 테제 드리프트를 점검하고, 청산 후에는 `/post-mortem`으로 회고한다.

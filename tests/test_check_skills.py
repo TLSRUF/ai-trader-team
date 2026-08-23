@@ -50,37 +50,70 @@ class TestCheckSkillFile(unittest.TestCase):
         path.write_text(content, encoding="utf-8")
         return path
 
+    def _write_synced(self, skills_tmp: str, commands_tmp: str, name: str, content: str) -> tuple[Path, Path]:
+        """skills/와 .claude/commands/ 양쪽에 동일한 내용으로 파일을 만든다 (드리프트 없음)."""
+        path = self._write(skills_tmp, name, content)
+        self._write(commands_tmp, name, content)
+        return path, Path(commands_tmp)
+
     def test_valid_file_has_no_errors(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._write(tmp, "demo-skill.md", VALID_SKILL)
-            self.assertEqual(check_skill_file(path), [])
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            path, commands_dir = self._write_synced(skills_tmp, cmd_tmp, "demo-skill.md", VALID_SKILL)
+            self.assertEqual(check_skill_file(path, commands_dir), [])
 
     def test_missing_frontmatter_entirely(self):
         broken = "# /demo-skill\n\n본문만 있음.\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._write(tmp, "demo-skill.md", broken)
-            errors = check_skill_file(path)
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            path, commands_dir = self._write_synced(skills_tmp, cmd_tmp, "demo-skill.md", broken)
+            errors = check_skill_file(path, commands_dir)
             self.assertTrue(any("프론트매터" in e for e in errors))
 
     def test_missing_argument_hint_key(self):
         broken = VALID_SKILL.replace("argument-hint: <티커>\n", "")
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._write(tmp, "demo-skill.md", broken)
-            errors = check_skill_file(path)
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            path, commands_dir = self._write_synced(skills_tmp, cmd_tmp, "demo-skill.md", broken)
+            errors = check_skill_file(path, commands_dir)
             self.assertTrue(any("argument-hint" in e for e in errors))
 
     def test_missing_heading(self):
         broken = VALID_SKILL.replace("# /demo-skill\n", "")
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._write(tmp, "demo-skill.md", broken)
-            errors = check_skill_file(path)
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            path, commands_dir = self._write_synced(skills_tmp, cmd_tmp, "demo-skill.md", broken)
+            errors = check_skill_file(path, commands_dir)
             self.assertTrue(any("헤딩" in e for e in errors))
 
     def test_heading_must_match_filename(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._write(tmp, "other-name.md", VALID_SKILL)
-            errors = check_skill_file(path)
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            path, commands_dir = self._write_synced(skills_tmp, cmd_tmp, "other-name.md", VALID_SKILL)
+            errors = check_skill_file(path, commands_dir)
             self.assertTrue(any("other-name" in e for e in errors))
+
+
+class TestCommandSync(unittest.TestCase):
+    def _write(self, tmp_dir: str, name: str, content: str) -> Path:
+        path = Path(tmp_dir) / name
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    def test_missing_command_file_is_error(self):
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            path = self._write(skills_tmp, "demo-skill.md", VALID_SKILL)
+            errors = check_skill_file(path, Path(cmd_tmp))  # commands 쪽엔 아무것도 안 씀
+            self.assertTrue(any("없음" in e for e in errors))
+
+    def test_drifted_command_file_is_error(self):
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            path = self._write(skills_tmp, "demo-skill.md", VALID_SKILL)
+            self._write(cmd_tmp, "demo-skill.md", VALID_SKILL + "\n오래된 내용\n")
+            errors = check_skill_file(path, Path(cmd_tmp))
+            self.assertTrue(any("드리프트" in e for e in errors))
+
+    def test_synced_command_file_has_no_sync_error(self):
+        with tempfile.TemporaryDirectory() as skills_tmp, tempfile.TemporaryDirectory() as cmd_tmp:
+            path = self._write(skills_tmp, "demo-skill.md", VALID_SKILL)
+            self._write(cmd_tmp, "demo-skill.md", VALID_SKILL)
+            errors = check_skill_file(path, Path(cmd_tmp))
+            self.assertEqual(errors, [])
 
 
 if __name__ == "__main__":

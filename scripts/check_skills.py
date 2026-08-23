@@ -10,9 +10,16 @@ install-claude-commands.sh가 조용히 프론트매터 없는 파일을 복사�
     - 프론트매터에 'description', 'argument-hint' 키가 비어 있지 않게 있어야 한다.
     - 본문에 '# /<파일명(확장자 제외)>' 형태의 최상위 헤딩이 있어야 한다
       (파일명 = 커맨드 이름 규칙, skills/README.md 참고).
+    - `.claude/commands/<파일명>`이 존재하고 `skills/<파일명>`과 내용이 완전히 같아야
+      한다 (`install-claude-commands.sh`로 만드는 생성물 — skills/*.md를 고친 뒤
+      스크립트를 재실행하지 않으면 실제 Claude Code가 로드하는 커맨드가 구버전으로
+      남는 드리프트를 CI 단계에서 잡아낸다).
 
 사용:
     python scripts/check_skills.py
+
+드리프트가 감지되면:
+    ./scripts/install-claude-commands.sh
 """
 
 from __future__ import annotations
@@ -22,6 +29,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_DIR = REPO_ROOT / "skills"
+COMMANDS_DIR = REPO_ROOT / ".claude" / "commands"
 REQUIRED_FRONTMATTER_KEYS = ("description", "argument-hint")
 
 
@@ -52,8 +60,17 @@ def _parse_frontmatter(text: str) -> dict[str, str] | None:
     return None  # 닫는 '---'를 못 찾음
 
 
-def check_skill_file(path: Path) -> list[str]:
-    """한 스킬 파일의 문제점 목록을 반환한다 (없으면 빈 리스트)."""
+def check_skill_file(path: Path, commands_dir: Path | None = None) -> list[str]:
+    """한 스킬 파일의 문제점 목록을 반환한다 (없으면 빈 리스트).
+
+    Args:
+        path: 검증할 skills/*.md 경로.
+        commands_dir: `.claude/commands/` 대응 디렉터리. 테스트에서 임시
+            디렉터리로 교체할 수 있도록 인자로 뺐다 (기본값: 실제 저장소 경로).
+    """
+    if commands_dir is None:
+        commands_dir = COMMANDS_DIR
+
     errors: list[str] = []
     text = path.read_text(encoding="utf-8")
 
@@ -68,6 +85,17 @@ def check_skill_file(path: Path) -> list[str]:
     expected_heading = f"# /{path.stem}"
     if expected_heading not in text:
         errors.append(f"본문에 최상위 헤딩 '{expected_heading}'이 없음")
+
+    command_path = commands_dir / path.name
+    if not command_path.is_file():
+        errors.append(
+            f".claude/commands/{path.name}이 없음 — ./scripts/install-claude-commands.sh 실행 필요"
+        )
+    elif command_path.read_text(encoding="utf-8") != text:
+        errors.append(
+            f".claude/commands/{path.name}이 skills/{path.name}과 다름 (드리프트) "
+            "— ./scripts/install-claude-commands.sh 재실행 필요"
+        )
 
     return errors
 

@@ -52,7 +52,7 @@ argument-hint: <티커 또는 자산명>
 - 핵심 수치는 **2개 이상 독립 출처**로 교차검증한다. 출처 간 오차가 크면(기준: 1% 초과 또는 방향이 다른 경우) 그 사실을 보고서에 명시한다.
 - 웹 검색이 막히거나 데이터가 없으면 "⚠️ 미확인"으로 명시한다. 없는 데이터를 있는 것처럼 서술하지 않는다.
 - 출력은 해당 `agents/*.md`에 정의된 출력 포맷을 그대로 따른다.
-- 시세/지표 교차검증은 `tools/trading_rigor.py cross-validate`로, 리스크 관리자의 포지션 사이징·리스크·리워드 계산은 `tools/trading_rigor.py position-size` / `risk-reward`로 수행한다. 암산하지 않는다.
+- 시세/지표 교차검증은 `tools/trading_rigor.py cross-validate`로, 리스크 관리자의 포지션 사이징·리스크·리워드·상관관계·포트폴리오 히트 계산은 `tools/trading_rigor.py position-size` / `risk-reward` / `correlation` / `portfolio-heat`로 수행한다. 암산하지 않는다.
 
 ### 5. 종합 (team-lead)
 
@@ -98,6 +98,14 @@ argument-hint: <티커 또는 자산명>
 ## 데이터 신뢰도
 🟢/🟡/🔴 <요약>
 ```
+
+### 7. 리포트 저장
+
+위 "6. 출력 포맷"으로 작성한 리포트를 **채팅 응답으로만 끝내지 않고**, `reports/<날짜>-<티커>-trade-team.md` 경로에 파일로도 저장한다 (`positions.md`의 "최초 테제" 칸과 `/position-review`의 리포트 조회가 이 파일에 의존한다).
+
+- 날짜는 실행 기준일(`YYYY-MM-DD`), 티커는 입력받은 대상 그대로 사용한다 (예: `reports/2026-08-23-AAPL-trade-team.md`).
+- 같은 날 같은 티커로 재실행하면 기존 파일을 덮어쓴다 (같은 날의 최신 판단만 유효하다고 본다). 하루 이상 지나 재실행한 경우는 새 날짜로 별도 파일을 남긴다 — 과거 판단을 지우지 않고 `/position-review`가 드리프트를 비교할 수 있게 한다.
+- 저장 후, 저장한 파일 경로를 사용자에게 알린다.
 
 ## 비용 관리
 

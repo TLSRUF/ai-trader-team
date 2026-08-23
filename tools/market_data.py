@@ -102,9 +102,14 @@ def get_history(ticker: str, start: str, end: str) -> list[dict]:
     close = df["Close"].squeeze()  # 단일/복수 티커 컬럼 형태(MultiIndex 등) 모두 Series로 정규화
     rows: list[dict] = []
     for date, value in close.items():
-        rows.append(
-            {"date": date.strftime("%Y-%m-%d"), "close": str(Decimal(str(float(value))).quantize(Decimal("0.01")))}
-        )
+        value = float(value)
+        if value != value:  # NaN 체크 (NaN은 자기 자신과도 같지 않다) — math.isnan 없이 표준적으로 판별
+            # yfinance가 특정 날짜에 결측치(NaN)를 반환하는 경우가 드물게 있다. 그대로 두면
+            # Decimal("NaN").quantize()가 decimal.InvalidOperation을 던져 원인을 알기 어려운
+            # 트레이스백으로 죽으므로, 그 날짜는 데이터 없음으로 보고 건너뛴다(백테스트 등
+            # 하위 소비자 입장에서는 그 하루가 없는 것과 동일하게 취급된다).
+            continue
+        rows.append({"date": date.strftime("%Y-%m-%d"), "close": str(Decimal(str(value)).quantize(Decimal("0.01")))})
     return rows
 
 

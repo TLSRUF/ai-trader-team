@@ -37,6 +37,11 @@ class TestExact(unittest.TestCase):
         d = Decimal("1.5")
         self.assertIs(exact(d), d)
 
+    def test_non_numeric_string_raises_value_error(self):
+        # 이전엔 decimal.InvalidOperation이 그대로 새어나갔다.
+        with self.assertRaises(ValueError):
+            exact("not-a-number")
+
 
 class TestCrossValidate(unittest.TestCase):
     def test_requires_at_least_two_sources(self):
@@ -71,6 +76,15 @@ class TestPositionSize(unittest.TestCase):
     def test_non_positive_account_raises(self):
         with self.assertRaises(ValueError):
             position_size(account_size=0, risk_pct=1, entry=100, stop=95)
+
+    def test_negative_risk_pct_raises(self):
+        # 이전엔 음수 risk-pct가 조용히 음수 수량/포지션 가치를 반환했다.
+        with self.assertRaises(ValueError):
+            position_size(account_size=10000, risk_pct=-1, entry=100, stop=95)
+
+    def test_zero_risk_pct_raises(self):
+        with self.assertRaises(ValueError):
+            position_size(account_size=10000, risk_pct=0, entry=100, stop=95)
 
 
 class TestKellyCriterion(unittest.TestCase):
@@ -159,6 +173,11 @@ class TestRealizedPnl(unittest.TestCase):
     def test_zero_risk_raises(self):
         with self.assertRaises(ValueError):
             realized_pnl(entry=100, stop=100, target=115, exit_price=110)
+
+    def test_zero_entry_raises(self):
+        # 이전엔 entry=0일 때 decimal.DivisionByZero가 그대로 새어나갔다.
+        with self.assertRaises(ValueError):
+            realized_pnl(entry=0, stop=5, target=15, exit_price=3)
 
 
 class TestCorrelation(unittest.TestCase):

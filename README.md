@@ -28,16 +28,17 @@ cd ai-trader-team
 ./scripts/install-claude-commands.sh
 ```
 
-Claude Code에서 이 저장소를 열면 `/screen`, `/trade-team`, `/position-review` 슬래시 커맨드를 바로 사용할 수 있습니다.
+Claude Code에서 이 저장소를 열면 `/screen`, `/trade-team`, `/position-review`, `/post-mortem` 슬래시 커맨드를 바로 사용할 수 있습니다.
 
 ```
 /screen AAA BBB CCC     # 저비용 스크리닝으로 후보를 먼저 거르고
 /screen                 # 인자 생략 시 reports/watchlist.md 전체를 스크리닝
 /trade-team AAA         # Pass한 종목만 4-agent 심층 분석
 /position-review AAA    # 진입 후 주기적으로 최초 테제가 아직 유효한지 재점검
+/post-mortem AAA        # 청산 후 실현 손익(R-멀티플)과 판단 귀인을 회고
 ```
 
-**권장 흐름**: `/screen`으로 후보를 거르고 → Pass한 종목만 `/trade-team`으로 심층 분석해서 진입 판단하고 → 진입 후에는 `/position-review`로 테제 드리프트를 주기적으로 점검합니다. 보유 포지션과 관심 종목은 각각 `reports/positions.md`, `reports/watchlist.md`에 원장으로 남아 다음 실행 때 자동으로 조회됩니다.
+**권장 흐름**: `/screen`으로 후보를 거르고 → Pass한 종목만 `/trade-team`으로 심층 분석해서 진입 판단하고 → 진입 후에는 `/position-review`로 테제 드리프트를 주기적으로 점검하고 → 청산 후에는 `/post-mortem`으로 회고합니다. 보유 포지션과 관심 종목은 각각 `reports/positions.md`, `reports/watchlist.md`에 원장으로 남아 다음 실행 때 자동으로 조회됩니다.
 
 ## 폴더 구조
 

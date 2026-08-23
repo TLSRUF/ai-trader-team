@@ -43,6 +43,7 @@ import sys
 from decimal import Decimal
 
 import market_data
+from cli_utils import force_utf8_stdio
 from trading_rigor import exact
 
 
@@ -406,23 +407,12 @@ def walk_forward(
     }
 
 
-def _force_utf8_stdio() -> None:
-    """Windows 콘솔의 기본 코드페이지에서 한글 출력이 깨지는 것을 방지한다."""
-    for stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(stream, "reconfigure", None)
-        if reconfigure is not None:
-            try:
-                reconfigure(encoding="utf-8")
-            except (ValueError, OSError):
-                pass
-
-
 def _print_json(data) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
 
 def main(argv: list[str] | None = None) -> int:
-    _force_utf8_stdio()
+    force_utf8_stdio()
 
     parser = argparse.ArgumentParser(prog="backtest.py", description="기계적 추세추종 전략 백테스트 엔진")
     sub = parser.add_subparsers(dest="command", required=True)

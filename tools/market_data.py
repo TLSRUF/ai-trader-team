@@ -26,21 +26,12 @@ import sys
 from datetime import datetime, timezone
 from decimal import Decimal
 
+from cli_utils import force_utf8_stdio
+
 try:
     import yfinance as yf
 except ImportError:  # pragma: no cover - 설치 여부에 따라 갈리는 경로
     yf = None
-
-
-def _force_utf8_stdio() -> None:
-    """Windows 콘솔의 기본 코드페이지에서 한글 출력이 깨지는 것을 방지한다."""
-    for stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(stream, "reconfigure", None)
-        if reconfigure is not None:
-            try:
-                reconfigure(encoding="utf-8")
-            except (ValueError, OSError):
-                pass
 
 
 def _require_yfinance() -> None:
@@ -118,7 +109,7 @@ def _print_json(data) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    _force_utf8_stdio()
+    force_utf8_stdio()
 
     parser = argparse.ArgumentParser(prog="market_data.py", description="yfinance 기반 실시간/과거 시세 조회 도구")
     sub = parser.add_subparsers(dest="command", required=True)

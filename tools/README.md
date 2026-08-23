@@ -17,6 +17,7 @@
 | [`trading_rigor.py`](trading_rigor.py) | 시세/지표 교차검증, 리스크 기반 포지션 사이징(고정 비율/켈리 기준), 리스크·리워드 비율, 실현 손익(R-멀티플), 두 시계열 간 상관계수, 포트폴리오 전체 리스크(히트) 계산. `Decimal` 기반, 외부 의존성 없음, CLI(`argparse`)로 직접 실행 가능 |
 | [`market_data.py`](market_data.py) | `yfinance`로 실시간 현재가·과거 일별 종가를 조회. 계산은 하지 않고 조회한 값을 Decimal 문자열로 반환만 함 — 이후 계산은 `trading_rigor.py`를 거친다 |
 | [`positions_ledger.py`](positions_ledger.py) | `reports/positions.md` 표를 파싱해 행 딕셔너리 리스트로 반환하는 공용 유틸 (`trading_rigor.py`·`portfolio_dashboard.py`가 공유) |
+| [`cli_utils.py`](cli_utils.py) | Windows 콘솔 UTF-8 인코딩 강제 등, 모든 CLI 스크립트가 공유하는 최소 유틸 (`trading_rigor.py`·`market_data.py`·`portfolio_dashboard.py`·`backtest.py`가 공유) |
 | [`portfolio_dashboard.py`](portfolio_dashboard.py) | 보유 포지션 전체의 실시간 시세·미실현 손익·포트폴리오 히트를 한 번에 계산 (`market_data.py` + `trading_rigor.py` 조합, 순수 집계라 LLM 판단 없음) |
 | [`backtest.py`](backtest.py) | 기계적 추세추종 전략(SMA 상향 돌파 진입 + 고정% 손절 + 고정 R:R 목표가)을 과거 데이터로 시뮬레이션. **주의**: AI Trader Team의 4-agent 정성적 판단을 재현하지 않는다 — 아래 설명 참고 |
 

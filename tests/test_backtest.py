@@ -20,6 +20,7 @@ from backtest import (  # noqa: E402
     DEFAULT_WALK_FORWARD_PARAM_GRID,
     _add_months,
     _slice_history,
+    _validate_param_grid,
     aggregate_results,
     simulate_trend_strategy,
     walk_forward,
@@ -182,6 +183,30 @@ class TestAddMonthsAndSliceHistory(unittest.TestCase):
         self.assertEqual([row["date"] for row in sliced], ["2024-01-02", "2024-01-03"])
 
 
+class TestValidateParamGrid(unittest.TestCase):
+    def test_accepts_well_formed_grid(self):
+        grid = [{"sma_window": "10", "stop_pct": "3", "target_r_multiple": "2", "max_hold_days": "60"}]
+        self.assertEqual(_validate_param_grid(grid), grid)
+
+    def test_rejects_empty_list(self):
+        with self.assertRaises(ValueError):
+            _validate_param_grid([])
+
+    def test_rejects_non_list(self):
+        with self.assertRaises(ValueError):
+            _validate_param_grid({"sma_window": "10"})
+
+    def test_rejects_missing_key(self):
+        with self.assertRaises(ValueError):
+            _validate_param_grid([{"sma_window": "10", "stop_pct": "3", "target_r_multiple": "2"}])
+
+    def test_rejects_unknown_key(self):
+        with self.assertRaises(ValueError):
+            _validate_param_grid(
+                [{"sma_window": "10", "stop_pct": "3", "target_r_multiple": "2", "max_hold_days": "60", "extra": "1"}]
+            )
+
+
 class TestWalkForward(unittest.TestCase):
     def test_raises_when_period_shorter_than_one_window(self):
         closes = _closes([100] * 400, start_date="2024-01-01")
@@ -207,6 +232,16 @@ class TestWalkForward(unittest.TestCase):
             self.assertEqual(w["selected_params"], DEFAULT_WALK_FORWARD_PARAM_GRID[0])
         self.assertEqual(result["overall_out_of_sample"]["n_trades"], 0)
         self.assertEqual(result["overall_out_of_sample"]["total_return_pct"], "0.00")
+
+    def test_custom_param_grid_is_the_only_candidate_selected(self):
+        # 커스텀 그리드가 원소 하나뿐이면, 그 파라미터가 (승패와 무관하게) 항상 선택돼야 한다.
+        closes = _closes([100] * 731, start_date="2024-01-01")
+        custom = [{"sma_window": "5", "stop_pct": "8", "target_r_multiple": "2", "max_hold_days": "30"}]
+        result = walk_forward(
+            {"AAA": closes}, "2024-01-01", "2026-01-01", window_months=12, step_months=6, param_grid=custom
+        )
+        for w in result["windows"]:
+            self.assertEqual(w["selected_params"], custom[0])
 
 
 if __name__ == "__main__":

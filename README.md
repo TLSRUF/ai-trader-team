@@ -6,6 +6,8 @@
 [![Skills](https://img.shields.io/badge/skills-5-informational.svg)](skills/)
 [![Agents](https://img.shields.io/badge/agents-4-informational.svg)](agents/)
 
+[English](README_EN.md) | 한국어
+
 개인이 AI 에이전트를 통해 전문 수준의 투자 리서치 팀을 갖추기 위한 프레임워크입니다. 슬래시 커맨드(스킬) → 병렬 서브에이전트(관점별 페르소나) → 결정론적 검증 도구, 3계층으로 구성됩니다.
 
 > ⚠️ 교육 및 연구 목적입니다. 투자자문이 아니며, 최종 판단과 책임은 사용자 본인에게 있습니다.

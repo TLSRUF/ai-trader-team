@@ -22,9 +22,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, DecimalException
 
 from cli_utils import force_utf8_stdio
 
@@ -94,11 +95,11 @@ def get_history(ticker: str, start: str, end: str) -> list[dict]:
     rows: list[dict] = []
     for date, value in close.items():
         value = float(value)
-        if value != value:  # NaN 체크 (NaN은 자기 자신과도 같지 않다) — math.isnan 없이 표준적으로 판별
-            # yfinance가 특정 날짜에 결측치(NaN)를 반환하는 경우가 드물게 있다. 그대로 두면
-            # Decimal("NaN").quantize()가 decimal.InvalidOperation을 던져 원인을 알기 어려운
-            # 트레이스백으로 죽으므로, 그 날짜는 데이터 없음으로 보고 건너뛴다(백테스트 등
-            # 하위 소비자 입장에서는 그 하루가 없는 것과 동일하게 취급된다).
+        if not math.isfinite(value):  # NaN·+Inf·-Inf 모두 결측치로 취급
+            # yfinance가 특정 날짜에 결측치(NaN)나 비정상값(Inf)을 반환하는 경우가 드물게
+            # 있다. 그대로 두면 Decimal("NaN"/"Infinity").quantize()가 decimal.InvalidOperation을
+            # 던져 원인을 알기 어려운 트레이스백으로 죽으므로, 그 날짜는 데이터 없음으로 보고
+            # 건너뛴다(백테스트 등 하위 소비자 입장에서는 그 하루가 없는 것과 동일하게 취급된다).
             continue
         rows.append({"date": date.strftime("%Y-%m-%d"), "close": str(Decimal(str(value)).quantize(Decimal("0.01")))})
     return rows
@@ -132,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         else:  # pragma: no cover - argparse가 이미 검증함
             parser.error(f"알 수 없는 커맨드: {args.command}")
             return 2
-    except (ValueError, RuntimeError) as exc:
+    except (ValueError, RuntimeError, DecimalException) as exc:
         print(f"오류: {exc}", file=sys.stderr)
         return 1
 

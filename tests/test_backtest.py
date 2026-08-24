@@ -12,10 +12,12 @@ from __future__ import annotations
 import os
 import sys
 import unittest
-from decimal import Decimal
+from decimal import Decimal, DecimalException
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "tools"))
 
+import backtest  # noqa: E402
 from backtest import (  # noqa: E402
     DEFAULT_WALK_FORWARD_PARAM_GRID,
     _add_months,
@@ -282,6 +284,16 @@ class TestWalkForward(unittest.TestCase):
         )
         for w in result["windows"]:
             self.assertEqual(w["selected_params"], custom[0])
+
+
+class TestMainDecimalExceptionHandling(unittest.TestCase):
+    def test_stray_decimal_exception_is_reported_cleanly_not_raised(self):
+        # 근본 원인(stop_pct<=0 검증 누락)은 이미 수정했지만, 앞으로 나올 수 있는
+        # 예상 못한 Decimal 예외에 대비해 CLI가 DecimalException을 잡아 명확한
+        # "오류: ..." 메시지 + 종료코드 1로 처리하는지(트레이스백으로 죽지 않는지) 확인한다.
+        with patch("backtest.market_data.get_history", side_effect=DecimalException("boom")):
+            code = backtest.main(["run", "--ticker", "AAPL", "--start", "2024-01-01", "--end", "2024-02-01"])
+        self.assertEqual(code, 1)
 
 
 if __name__ == "__main__":

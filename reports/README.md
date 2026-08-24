@@ -26,3 +26,8 @@
 | [`examples/position-review-example.md`](examples/position-review-example.md) | `/position-review` 출력 포맷 예시, trade-team-example.md의 DEMO-A를 이어받은 드리프트 판정 (가상 데이터) |
 | [`examples/post-mortem-example.md`](examples/post-mortem-example.md) | `/post-mortem` 출력 포맷 예시, position-review-example.md의 DEMO-A 축소 검토 이후 청산까지 이어지는 회고 (가상 데이터) |
 | [`2026-08-23-backtest-comparison.md`](2026-08-23-backtest-comparison.md) | `tools/backtest.py`로 실행한 실제 백테스트 결과와 xbtlin/ai-berkshire 자기보고 수치 비교 (실제 데이터, 한계·주의사항 명시) |
+| [`2026-08-23-backtest-crypto-extension.md`](2026-08-23-backtest-crypto-extension.md) | `tools/backtest.py` 크립토 자산군 확장 검증 (실제 데이터) — 같은 전략이 자산군을 넘어 일반화되지 않는다는 결론 |
+| [`2026-08-23-screen.md`](2026-08-23-screen.md) | `/screen` 실제 실행 결과 |
+| [`2026-08-23-AVGO-trade-team.md`](2026-08-23-AVGO-trade-team.md) | `/trade-team AVGO` 실제 실행 결과 |
+| [`2026-08-23-PLTR-trade-team.md`](2026-08-23-PLTR-trade-team.md) | `/trade-team PLTR` 실제 실행 결과 |
+| [`2026-08-23-ASML-trade-team.md`](2026-08-23-ASML-trade-team.md) | `/trade-team ASML` 실제 실행 결과 |

@@ -1,8 +1,12 @@
 version: 2
 updates:
   # tools/market_data.py의 유일한 외부 의존성(requirements.txt: yfinance)을 최신 상태로 유지한다.
+  #
+  # target-branch: dev — 지정하지 않으면 저장소 기본 브랜치(main)로 바로 PR이 열려
+  # CONTRIBUTING.md의 '이슈→토픽브랜치→PR→dev병합→main승격' 흐름을 우회하게 된다.
   - package-ecosystem: "pip"
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
     commit-message:
@@ -14,6 +18,7 @@ updates:
   # .github/workflows/test.yml의 액션 버전(actions/checkout, actions/setup-python 등)을 최신 상태로 유지한다.
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
     commit-message:

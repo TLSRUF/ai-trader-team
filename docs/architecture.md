@@ -59,9 +59,12 @@ Report Layer  (reports/)  ← 원장·산출물 — 스킬 실행 간 상태를 
 
 ## 부가 계층 — 구조 검증 (`scripts/`)
 
-- `scripts/check_skills.py`가 `skills/*.md`의 프론트매터·헤딩 규칙을 검증하고 CI(`.github/workflows/test.yml`)에 연결되어 있다.
-- Skill/Agent/Tool/Report 네 계층이 스스로를 실행하는 쪽이라면, 이 스크립트는 그 계층들의
-  구조가 문서화된 규칙(`skills/README.md`)에서 벗어나지 않았는지 자동으로 지키는 가드레일이다.
+- `scripts/check_skills.py`가 `skills/*.md`의 프론트매터·헤딩 규칙을 검증하고, `.claude/commands/`에
+  대응하는 `skills/*.md`가 없는 고아 파일도 함께 검출한다. `scripts/check_agents.py`는 같은 방식으로
+  `agents/*.md`의 구조를 검증한다. 둘 다 CI(`.github/workflows/test.yml`)에 연결되어 있다.
+- Skill/Agent/Tool/Report 네 계층이 스스로를 실행하는 쪽이라면, 이 스크립트들은 그 계층들의
+  구조가 문서화된 규칙(`skills/README.md`, `agents/README.md`)에서 벗어나지 않았는지 자동으로
+  지키는 가드레일이다.
 
 ## 종합 원칙
 

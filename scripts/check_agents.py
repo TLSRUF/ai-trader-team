@@ -31,16 +31,8 @@ REQUIRED_HEADINGS = (
     "## 출력 포맷",
 )
 
-
-def _force_utf8_stdio() -> None:
-    """Windows 콘솔의 기본 코드페이지에서 한글 출력이 깨지는 것을 방지한다."""
-    for stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(stream, "reconfigure", None)
-        if reconfigure is not None:
-            try:
-                reconfigure(encoding="utf-8")
-            except (ValueError, OSError):
-                pass
+sys.path.insert(0, str(REPO_ROOT / "tools"))
+from cli_utils import force_utf8_stdio  # noqa: E402
 
 
 def check_agent_file(path: Path) -> list[str]:
@@ -57,7 +49,7 @@ def check_agent_file(path: Path) -> list[str]:
 
 
 def main() -> int:
-    _force_utf8_stdio()
+    force_utf8_stdio()
 
     if not AGENTS_DIR.is_dir():
         print(f"오류: {AGENTS_DIR} 디렉터리를 찾을 수 없습니다.", file=sys.stderr)

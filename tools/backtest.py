@@ -80,6 +80,15 @@ def simulate_trend_strategy(
     friction_pct_d = exact(friction_pct)
     if friction_pct_d < 0:
         raise ValueError("friction_pct는 음수일 수 없습니다.")
+    if stop_pct_d <= 0:
+        # stop_pct<=0이면 stop_price가 entry_price와 같거나 그 위가 되어, 손절이 트리거될 때
+        # risk(entry_price - stop_price)가 0 이하가 된다. risk==0이면 r_multiple 계산이
+        # 0으로 나누기(decimal.InvalidOperation)로 죽어 원인 불명의 트레이스백을 남긴다.
+        raise ValueError("stop_pct는 0보다 커야 합니다.")
+    if target_r_d <= 0:
+        # target_r_multiple<=0이면 target_price가 entry_price 이하가 되어, 상승 추세를
+        # 쫓는 이 전략에서 의미 없는 설정이다(크래시는 아니지만 결과가 무의미해진다).
+        raise ValueError("target_r_multiple는 0보다 커야 합니다.")
 
     if sma_window < 1:
         raise ValueError("sma_window는 1 이상이어야 합니다.")

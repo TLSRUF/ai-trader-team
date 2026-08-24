@@ -41,6 +41,29 @@ class TestSimulateTrendStrategy(unittest.TestCase):
         trades = simulate_trend_strategy(closes, sma_window=20)
         self.assertEqual(trades, [])
 
+    def test_zero_stop_pct_raises_instead_of_dividing_by_zero(self):
+        # stop_pct<=0이면 stop_price==entry_price가 되어 risk가 0이 되고, 실제로 손절이
+        # 트리거되면 r_multiple 계산이 decimal.InvalidOperation(0으로 나누기)으로 죽는다.
+        # 그 전에 명확한 ValueError로 막아야 한다.
+        closes = _closes([100] * 30)
+        with self.assertRaises(ValueError):
+            simulate_trend_strategy(closes, stop_pct="0")
+
+    def test_negative_stop_pct_raises(self):
+        closes = _closes([100] * 30)
+        with self.assertRaises(ValueError):
+            simulate_trend_strategy(closes, stop_pct="-3")
+
+    def test_zero_target_r_multiple_raises(self):
+        closes = _closes([100] * 30)
+        with self.assertRaises(ValueError):
+            simulate_trend_strategy(closes, target_r_multiple="0")
+
+    def test_negative_target_r_multiple_raises(self):
+        closes = _closes([100] * 30)
+        with self.assertRaises(ValueError):
+            simulate_trend_strategy(closes, target_r_multiple="-2")
+
     def test_target_hit_produces_win_trade(self):
         # 21일 횡보(100) 후 급등 돌파(entry=110) → stop_pct=5 → risk=5.5, target_r=2 → target=121
         # (크로스오버 판정에 어제/오늘 두 SMA가 모두 필요해 횡보가 sma_window+1일 필요하다)

@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # tools/market_data.py의 유일한 외부 의존성(requirements.txt: yfinance)을 최신 상태로 유지한다.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+
+  # .github/workflows/test.yml의 액션 버전(actions/checkout, actions/setup-python 등)을 최신 상태로 유지한다.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"

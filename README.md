@@ -1,10 +1,21 @@
 # AI Trader Team
 
 [![Test](https://github.com/TLSRUF/ai-trader-team/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/TLSRUF/ai-trader-team/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](requirements.txt)
+[![Skills](https://img.shields.io/badge/skills-5-informational.svg)](skills/)
+[![Agents](https://img.shields.io/badge/agents-4-informational.svg)](agents/)
 
 개인이 AI 에이전트를 통해 전문 수준의 투자 리서치 팀을 갖추기 위한 프레임워크입니다. 슬래시 커맨드(스킬) → 병렬 서브에이전트(관점별 페르소나) → 결정론적 검증 도구, 3계층으로 구성됩니다.
 
 > ⚠️ 교육 및 연구 목적입니다. 투자자문이 아니며, 최종 판단과 책임은 사용자 본인에게 있습니다.
+
+## 이런 분들께 유용합니다
+
+- **스윙 트레이더** — `/screen`으로 후보군을 빠르게 걸러내고, `/trade-team`으로 진입 전 4관점(추세·매크로·리스크·수급) 교차검증을 받고 싶은 경우
+- **장기 보유자** — `/position-review`로 보유 종목의 최초 진입 근거가 여전히 유효한지 주기적으로 재점검하고 싶은 경우
+- **전략 검증자** — 정성적 판단이 아니라 `tools/backtest.py`의 워크포워드 검증으로 규칙 기반 전략의 과최적화 여부를 직접 확인하고 싶은 경우
+- **Claude Code 사용자** — 이미 Claude Code 워크플로우에 익숙하고, 스킬/서브에이전트/결정론적 도구를 조합하는 프레임워크 설계를 참고하고 싶은 경우
 
 ## 아키텍처
 
@@ -68,6 +79,21 @@ python tools/backtest.py walk-forward --tickers '["AAPL","MSFT","NVDA"]' \
 실제 검증 결과는 `reports/2026-08-23-backtest-comparison.md`(미국 대형주 파라미터 튜닝)와
 `reports/2026-08-23-backtest-crypto-extension.md`(크립토 확장 검증 — 같은 전략이 자산군을
 넘어 일반화되지 않는다는 결론)를 참고하세요.
+
+## 샘플 출력
+
+`/trade-team`은 4개 관점 서브에이전트를 병렬 실행해 아래처럼 하나의 리포트로 종합합니다 (아래는 [reports/examples/trade-team-example.md](reports/examples/trade-team-example.md)에서 발췌한 예시 데이터입니다 — 실제 투자 판단에 사용하지 마세요):
+
+| 관점 | 태그 | 점수 | 핵심 근거 |
+|---|---|---|---|
+| 추세 | Bull | 4/5 | 다중 시간축 상승 배열, 거래량 동반 돌파 확인 |
+| 매크로 | Neutral | 3/5 | 유동성 환경은 우호적이나 섹터 로테이션 방향이 상충 |
+| 리스크 | Bear | 2/5 | 최근 유사 국면에서 최대낙폭 이력이 크고, 상관관계 높은 포지션 이미 보유 중 |
+| 수급 | Bull | 4/5 | 순매수 흐름과 이상거래량 확인, 옵션 포지셔닝은 중립 |
+
+> **한줄 결론**: 4개 관점 중 3개(추세·매크로·수급)는 긍정적이나, 리스크 관리자가 손실 시나리오를 근거로 반대하는 **Gray Zone** — 포지션 크기를 줄여서 접근할지, 리스크 신호가 해소될 때까지 대기할지 판단이 필요하다.
+
+이런 의견 충돌(Gray Zone)은 버그가 아니라 설계 의도입니다 — 4개 에이전트가 서로 다른 질문(가격이 오를까? vs 이 계좌 맥락에서 손실을 감당 가능한가?)에 답하기 때문에 나오는 자연스러운 결과이며, 최종 판단은 항상 사용자에게 남습니다. 다른 스킬의 실제 출력 예시는 [reports/examples/](reports/examples/)에서 전부 볼 수 있습니다.
 
 ## 폴더 구조
 

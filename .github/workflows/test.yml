@@ -6,6 +6,12 @@ on:
   push:
     branches: [dev, main]
 
+# 최소 권한 원칙(GitHub Actions 보안 권장사항) — 이 워크플로우는 체크아웃·의존성
+# 설치·테스트 실행만 하고 어떤 쓰기 작업(푸시/코멘트/릴리즈 등)도 하지 않으므로,
+# 저장소 기본 GITHUB_TOKEN 권한 설정과 무관하게 읽기 전용으로 명시한다.
+permissions:
+  contents: read
+
 jobs:
   unittest:
     strategy:

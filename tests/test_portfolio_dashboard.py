@@ -13,6 +13,7 @@ import os
 import sys
 import tempfile
 import unittest
+from decimal import DecimalException
 from pathlib import Path
 from unittest.mock import patch
 
@@ -76,6 +77,22 @@ class TestBuildDashboard(unittest.TestCase):
         self.assertIsNotNone(result["portfolio_heat"])
         self.assertEqual(result["portfolio_heat"]["total_risk_pct"], "3.5")  # 1.5 + 2
 
+    @patch("portfolio_dashboard.market_data.get_quote", side_effect=DecimalException("boom"))
+    def test_stray_decimal_exception_from_quote_becomes_row_error_not_raised(self, _mock_quote):
+        # get_quote/unrealized_pnl 자체는 이미 알려진 엣지케이스를 방어하지만, 앞으로 나올 수
+        # 있는 예상 못한 Decimal 예외에 대비해 한 포지션의 오류가 전체를 죽이지 않고
+        # errors 목록에만 담기는지 확인한다 (기존 ValueError/RuntimeError 처리와 동일하게).
+        content = (
+            "| 티커 | 상태 | 진입가 | 손절가 | 목표가 | 계좌리스크% |\n"
+            "|---|---|---|---|---|---|\n"
+            "| AAPL | 보유중 | 200 | 190 | 260 | 1.5 |\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, content)
+            result = portfolio_dashboard.build_dashboard(path)
+        self.assertEqual(result["n_quoted"], 0)
+        self.assertEqual(len(result["errors"]), 1)
+
     def test_no_open_positions_returns_none_heat(self):
         content = "| 티커 | 상태 | 계좌리스크% |\n|---|---|---|\n| _(아직 기록된 포지션 없음)_ | | |\n"
         with tempfile.TemporaryDirectory() as tmp:
@@ -98,6 +115,16 @@ class TestBuildDashboard(unittest.TestCase):
         self.assertEqual(len(result["errors"]), 1)
         # 계좌리스크%는 진입가와 무관하게 여전히 집계된다.
         self.assertIsNotNone(result["portfolio_heat"])
+
+
+class TestMainDecimalExceptionHandling(unittest.TestCase):
+    @patch("portfolio_dashboard.build_dashboard", side_effect=DecimalException("boom"))
+    def test_stray_decimal_exception_is_reported_cleanly_not_raised(self, _mock_build):
+        # build_dashboard 내부 방어가 뚫려 DecimalException이 그대로 올라오더라도,
+        # CLI가 명확한 "오류: ..." 메시지 + 종료코드 1로 처리하는지(트레이스백으로
+        # 죽지 않는지) 확인한다.
+        code = portfolio_dashboard.main([])
+        self.assertEqual(code, 1)
 
 
 if __name__ == "__main__":

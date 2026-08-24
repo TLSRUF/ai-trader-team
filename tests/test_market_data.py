@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import sys
 import unittest
+from decimal import DecimalException
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "tools"))
@@ -124,6 +125,24 @@ class TestGetHistory(unittest.TestCase):
         self.assertEqual(rows, [{"date": "2023-01-03", "close": "122.88"}, {"date": "2023-01-05", "close": "124.14"}])
 
     @patch("market_data.yf")
+    def test_infinite_close_row_is_skipped_not_raised(self, mock_yf):
+        # NaN과 같은 이유로 +Inf/-Inf도 그대로 두면 Decimal("Infinity").quantize()가
+        # decimal.InvalidOperation으로 죽는다 — NaN과 동일하게 결측치로 취급해 건너뛴다.
+        close_data = {
+            _FakeDate("2023-01-03"): 122.876,
+            _FakeDate("2023-01-04"): float("inf"),
+            _FakeDate("2023-01-05"): float("-inf"),
+            _FakeDate("2023-01-06"): 124.144,
+        }
+        fake_df = MagicMock()
+        fake_df.empty = False
+        fake_df.__getitem__.return_value = _FakeClose(close_data)
+        mock_yf.download.return_value = fake_df
+
+        rows = market_data.get_history("aapl", "2023-01-01", "2023-01-07")
+        self.assertEqual(rows, [{"date": "2023-01-03", "close": "122.88"}, {"date": "2023-01-06", "close": "124.14"}])
+
+    @patch("market_data.yf")
     def test_empty_dataframe_raises(self, mock_yf):
         fake_df = MagicMock()
         fake_df.empty = True
@@ -136,6 +155,17 @@ class TestGetHistory(unittest.TestCase):
         mock_yf.download.return_value = None
         with self.assertRaises(ValueError):
             market_data.get_history("FAKE", "2023-01-01", "2023-01-05")
+
+
+class TestMainDecimalExceptionHandling(unittest.TestCase):
+    @patch("market_data.get_history", side_effect=DecimalException("boom"))
+    def test_stray_decimal_exception_is_reported_cleanly_not_raised(self, mock_get_history):
+        # get_quote/get_history 자체는 이미 알려진 엣지케이스(NaN/무한대)를 방어하지만,
+        # 앞으로 나올 수 있는 예상 못한 Decimal 예외에 대비해 CLI가 DecimalException을
+        # 잡아 명확한 "오류: ..." 메시지 + 종료코드 1로 처리하는지(트레이스백으로 죽지
+        # 않는지) 확인한다.
+        code = market_data.main(["history", "--ticker", "AAPL", "--start", "2024-01-01", "--end", "2024-02-01"])
+        self.assertEqual(code, 1)
 
 
 if __name__ == "__main__":

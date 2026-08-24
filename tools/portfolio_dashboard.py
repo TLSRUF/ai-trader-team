@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from decimal import DecimalException
 
 import market_data
 import trading_rigor
@@ -62,7 +63,7 @@ def build_dashboard(positions_path) -> dict:
         try:
             quote = market_data.get_quote(ticker)
             pnl = trading_rigor.unrealized_pnl(entry, stop, target, quote["price"])
-        except (ValueError, RuntimeError) as exc:
+        except (ValueError, RuntimeError, DecimalException) as exc:
             errors.append(f"{ticker}: {exc}")
             continue
 
@@ -100,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         result = build_dashboard(args.positions_file)
-    except (ValueError, OSError) as exc:
+    except (ValueError, OSError, DecimalException) as exc:
         print(f"오류: {exc}", file=sys.stderr)
         return 1
 

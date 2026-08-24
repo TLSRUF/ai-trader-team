@@ -40,7 +40,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from decimal import Decimal
+from decimal import Decimal, DecimalException
 
 import market_data
 from cli_utils import force_utf8_stdio
@@ -512,7 +512,7 @@ def main(argv: list[str] | None = None) -> int:
         else:  # pragma: no cover - argparse가 이미 검증함
             parser.error(f"알 수 없는 커맨드: {args.command}")
             return 2
-    except (ValueError, RuntimeError, json.JSONDecodeError) as exc:
+    except (ValueError, RuntimeError, json.JSONDecodeError, DecimalException) as exc:
         print(f"오류: {exc}", file=sys.stderr)
         return 1
 

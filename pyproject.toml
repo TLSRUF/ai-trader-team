@@ -1,0 +1,16 @@
+[tool.ruff]
+# 이 프로젝트는 한국어 주석/문자열 비중이 높다 — 기본 88자·120자 기준으로는
+# 실질적 가독성 문제가 아닌 노이즈(190건+)가 대량 발생함을 확인했다(#191).
+# 160자로 완화하면 사전 검토 결과 실제 유의미한 위반만 남는다.
+# target-version은 실제 지원 최소치(3.10, tools/README.md 언급 없음 확인)에 맞춘다.
+# README 배지의 "3.11+"는 CI가 3.11에서 검증한다는 의미이며, 코드 자체가 3.11
+# 전용 문법(예: datetime.UTC)을 요구하도록 pyupgrade가 유도하는 건 원치 않는다 —
+# 불필요하게 호환성을 좁히고, 로컬 3.10 환경에서 린트 결과를 검증할 수 없게 된다.
+line-length = 160
+target-version = "py310"
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, I: isort(import 정렬), UP: pyupgrade,
+# B: flake8-bugbear, SIM: flake8-simplify. docstring 강제(D) 등은 이 프로젝트의
+# 한국어 주석 스타일과 맞지 않아 의도적으로 제외했다.
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]

@@ -79,7 +79,8 @@ def cross_validate(field: str, values: dict) -> dict:
     sources: dict[str, dict[str, str]] = {}
     warnings: list[str] = []
     for src, val in decimals.items():
-        if median == 0:
+        # 중첩 삼항연산자로 한 줄에 합치면 가독성이 떨어져 if/else를 유지한다.
+        if median == 0:  # noqa: SIM108
             deviation_pct = Decimal("0") if val == 0 else Decimal("999.99")
         else:
             deviation_pct = abs((val - median) / median) * 100
@@ -240,10 +241,7 @@ def realized_pnl(entry, stop, target, exit_price) -> dict:
     direction = "long" if target_d > entry_d else "short"
     planned_r_multiple = abs(target_d - entry_d) / risk
 
-    if direction == "long":
-        realized_move = exit_d - entry_d
-    else:
-        realized_move = entry_d - exit_d
+    realized_move = exit_d - entry_d if direction == "long" else entry_d - exit_d
 
     realized_return_pct = (realized_move / entry_d) * 100
     realized_r_multiple = realized_move / risk
@@ -318,7 +316,7 @@ def correlation(series_a: list, series_b: list) -> dict:
 
     mean_a = sum(a) / n
     mean_b = sum(b) / n
-    covariance = sum((x - mean_a) * (y - mean_b) for x, y in zip(a, b))
+    covariance = sum((x - mean_a) * (y - mean_b) for x, y in zip(a, b, strict=True))
     variance_a = sum((x - mean_a) ** 2 for x in a)
     variance_b = sum((y - mean_b) ** 2 for y in b)
 

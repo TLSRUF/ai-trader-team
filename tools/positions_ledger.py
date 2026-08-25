@@ -47,7 +47,11 @@ def parse_positions_table(positions_path) -> list[dict[str, str]]:
         cells = [c.strip() for c in stripped.strip("|").split("|")]
         if len(cells) < len(headers):
             cells += [""] * (len(headers) - len(cells))
-        row = dict(zip(headers, cells))
+        # strict=False: 사람이 직접 편집하는 markdown 표라 셀 수가 헤더 수보다
+        # 많아지는 경우(오탈자로 인한 '|' 추가 등)가 있을 수 있다 — 그런 초과분은
+        # 무시하고 관대하게 파싱하는 게 의도된 동작이다(엄격 검증은 이미 위에서
+        # 부족한 셀을 채우는 패딩으로 처리했다).
+        row = dict(zip(headers, cells, strict=False))
 
         ticker = row.get("티커", "")
         if not ticker or ticker.startswith("_("):

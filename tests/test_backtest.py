@@ -12,7 +12,7 @@ from __future__ import annotations
 import os
 import sys
 import unittest
-from decimal import Decimal, DecimalException
+from decimal import DecimalException
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "tools"))

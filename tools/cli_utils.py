@@ -10,6 +10,7 @@ market_data.py/trading_rigor.py/positions_ledger.py를 서로 임포트하는 �
 
 from __future__ import annotations
 
+import contextlib
 import sys
 
 
@@ -23,7 +24,5 @@ def force_utf8_stdio() -> None:
     for stream in (sys.stdout, sys.stderr):
         reconfigure = getattr(stream, "reconfigure", None)
         if reconfigure is not None:
-            try:
+            with contextlib.suppress(ValueError, OSError):
                 reconfigure(encoding="utf-8")
-            except (ValueError, OSError):
-                pass

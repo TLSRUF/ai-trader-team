@@ -34,7 +34,10 @@ jobs:
           cache-dependency-path: requirements.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check .
 
       - name: Run tests
         run: python -m unittest discover -s tests -p "test_*.py" -v

@@ -28,8 +28,16 @@ python -m unittest tests/test_portfolio_dashboard.py -v
 python -m unittest tests/test_backtest.py -v
 ```
 
-전체 실행 (CI와 동일):
+전체 실행:
 
 ```bash
 python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+CI와 동일하게(커버리지 90% 하한선 포함) 실행:
+
+```bash
+pip install -r requirements-dev.txt
+coverage run --source=tools,scripts -m unittest discover -s tests -p "test_*.py" -v
+coverage report -m --fail-under=90
 ```

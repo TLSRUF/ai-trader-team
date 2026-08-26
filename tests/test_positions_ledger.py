@@ -77,6 +77,24 @@ class TestParsePositionsTable(unittest.TestCase):
             rows = parse_positions_table(path)
         self.assertEqual(rows[0]["비고"], "")
 
+    def test_trailing_content_after_table_does_not_leak_into_rows(self):
+        # 실제 reports/positions.md처럼 표 뒤에 다른 섹션(메모 등)이 이어지는 경우,
+        # 표가 끝난 지점('|'로 시작하지 않는 첫 줄)에서 파싱을 멈춰야 한다 —
+        # 이어지는 프로즈 텍스트가 행으로 잘못 파싱되면 안 된다.
+        content = (
+            "| 티커 | 상태 |\n"
+            "|---|---|\n"
+            "| AAPL | 보유중 |\n"
+            "\n"
+            "## 메모\n"
+            "표 아래에 이어지는 설명 텍스트.\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, content)
+            rows = parse_positions_table(path)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["티커"], "AAPL")
+
 
 if __name__ == "__main__":
     unittest.main()

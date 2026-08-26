@@ -9,6 +9,9 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
+import json
 import os
 import sys
 import unittest
@@ -294,6 +297,70 @@ class TestMainDecimalExceptionHandling(unittest.TestCase):
         with patch("backtest.market_data.get_history", side_effect=DecimalException("boom")):
             code = backtest.main(["run", "--ticker", "AAPL", "--start", "2024-01-01", "--end", "2024-02-01"])
         self.assertEqual(code, 1)
+
+
+class TestMainRunAndWalkForwardHappyPath(unittest.TestCase):
+    """main()의 `run`/`walk-forward` 성공 경로(CLI 인자 → 함수 호출 조립 → JSON 출력)를 검증한다.
+
+    기존 테스트는 `simulate_trend_strategy`/`aggregate_results`/`walk_forward`를 직접
+    호출해 로직 자체는 검증했지만, main()이 `args.sma_window`/`args.stop_pct` 등을
+    각 함수 키워드 인자로 올바르게 연결하는지, 최종적으로 stdout에 결과를 JSON으로
+    출력하고 0을 반환하는지는(오류 경로만 있고 정상 경로가 없어) 검증되지 않았다.
+    """
+
+    def test_run_command_prints_result_json_and_returns_0(self):
+        prices = [100 + i * 0.1 for i in range(60)]
+        with patch("backtest.market_data.get_history", return_value=_closes(prices)):
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                code = backtest.main(
+                    ["run", "--tickers", '["AAPL","MSFT"]', "--start", "2024-01-01", "--end", "2024-06-01"]
+                )
+        self.assertEqual(code, 0)
+        result = json.loads(stdout.getvalue())
+        self.assertIn("total_return_pct", result)
+        self.assertIn("n_trades", result)
+
+    def test_run_command_empty_tickers_list_returns_1(self):
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            code = backtest.main(["run", "--tickers", "[]", "--start", "2024-01-01", "--end", "2024-06-01"])
+        self.assertEqual(code, 1)
+        self.assertIn("최소 1개 이상의 티커가 필요합니다", stderr.getvalue())
+
+    def test_walk_forward_command_prints_result_json_and_returns_0(self):
+        prices = [100 + i * 0.1 for i in range(560)]
+        with patch("backtest.market_data.get_history", return_value=_closes(prices, start_date="2022-01-01")):
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                code = backtest.main(
+                    [
+                        "walk-forward",
+                        "--tickers",
+                        '["AAPL"]',
+                        "--start",
+                        "2022-01-01",
+                        "--end",
+                        "2023-07-01",
+                        "--window-months",
+                        "12",
+                        "--step-months",
+                        "6",
+                    ]
+                )
+        self.assertEqual(code, 0)
+        result = json.loads(stdout.getvalue())
+        self.assertIn("windows", result)
+        self.assertIn("overall_out_of_sample", result)
+
+    def test_walk_forward_command_empty_tickers_list_returns_1(self):
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            code = backtest.main(
+                ["walk-forward", "--tickers", "[]", "--start", "2022-01-01", "--end", "2023-07-01"]
+            )
+        self.assertEqual(code, 1)
+        self.assertIn("최소 1개 이상의 티커가 필요합니다", stderr.getvalue())
 
 
 if __name__ == "__main__":

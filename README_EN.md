@@ -76,6 +76,24 @@ python tools/backtest.py walk-forward --tickers '["AAPL","MSFT","NVDA"]' \
 
 For actual validation results, see `reports/2026-08-23-backtest-comparison.md` (parameter tuning on large-cap US equities) and `reports/2026-08-23-backtest-crypto-extension.md` (crypto extension — concluding that the same strategy does not generalize across asset classes).
 
+### Yearly performance vs. S&P 500
+
+Results for a 10-ticker universe (AAPL, MSFT, NVDA, GOOGL, AMZN, META, TSLA, JPM, UNH, XOM),
+tuned default parameters, with a 0.1% friction cost applied. Please also read the methodology and
+limitations in `reports/2026-08-26-performance-vs-sp500.md` — these are backtested historical
+results and do not guarantee future returns.
+
+| Year | AI Trader Team (tuned backtest) | S&P 500 (buy & hold) |
+|---|---|---|
+| 2022 | **-10.67%** | -19.95% |
+| 2023 | **+96.86%** | +24.73% |
+| 2024 | **+94.94%** | +24.01% |
+| 2025 | **+54.92%** | +16.65% |
+
+Even in the 2022 bear market, the strategy's drawdown was about half the index's, and it clearly
+outperforms the S&P 500 in each of the other three years. See `reports/2026-08-26-performance-vs-sp500.md`
+for full methodology, data sources, and limitations.
+
 ## Sample output
 
 `/trade-team` runs four perspective sub-agents in parallel and synthesizes them into a single report, like this (excerpted from [reports/examples/trade-team-example.md](reports/examples/trade-team-example.md) — this is example data, not real; do not use it for actual investment decisions):

@@ -39,8 +39,14 @@ jobs:
       - name: Lint (ruff)
         run: ruff check .
 
-      - name: Run tests
-        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Run tests (with coverage)
+        # tools/·scripts/의 라인 커버리지가 90% 밑으로 떨어지면 CI를 실패시킨다.
+        # 90%는 임의의 목표치가 아니라, main() CLI 진입점의 정상/에러 경로 테스트를
+        # 보강한 뒤(#197, #200) 실측한 현재 커버리지(98%)에 여유를 둔 하한선이다 —
+        # 이후 새 코드가 테스트 없이 추가돼 커버리지가 서서히 깎이는 걸 방지한다.
+        run: |
+          coverage run --source=tools,scripts -m unittest discover -s tests -p "test_*.py" -v
+          coverage report -m --fail-under=90
 
       - name: Check skills structure
         run: python scripts/check_skills.py

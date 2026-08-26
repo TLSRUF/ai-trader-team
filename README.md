@@ -82,6 +82,23 @@ python tools/backtest.py walk-forward --tickers '["AAPL","MSFT","NVDA"]' \
 `reports/2026-08-23-backtest-crypto-extension.md`(크립토 확장 검증 — 같은 전략이 자산군을
 넘어 일반화되지 않는다는 결론)를 참고하세요.
 
+### 연도별 성과 (S&P500 대비)
+
+10종목(AAPL·MSFT·NVDA·GOOGL·AMZN·META·TSLA·JPM·UNH·XOM) 유니버스, 튜닝 기본값,
+마찰비용 0.1% 반영 결과입니다. 방법론·한계는 `reports/2026-08-26-performance-vs-sp500.md`를
+반드시 함께 읽어주세요 — 과거 백테스트 성과이며 미래 수익을 보장하지 않습니다.
+
+| 연도 | AI Trader Team (튜닝 백테스트) | S&P500 (매수 후 보유) |
+|---|---|---|
+| 2022 | **-10.67%** | -19.95% |
+| 2023 | **+96.86%** | +24.73% |
+| 2024 | **+94.94%** | +24.01% |
+| 2025 | **+54.92%** | +16.65% |
+
+2022년 약세장에서도 지수 하락폭의 절반 수준으로 방어했고, 나머지 3개 연도는 모두 S&P500을
+크게 상회합니다. 자세한 방법론·데이터 출처·한계는 `reports/2026-08-26-performance-vs-sp500.md`를
+참고하세요.
+
 ## 샘플 출력
 
 `/trade-team`은 4개 관점 서브에이전트를 병렬 실행해 아래처럼 하나의 리포트로 종합합니다 (아래는 [reports/examples/trade-team-example.md](reports/examples/trade-team-example.md)에서 발췌한 예시 데이터입니다 — 실제 투자 판단에 사용하지 마세요):

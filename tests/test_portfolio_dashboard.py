@@ -9,6 +9,9 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
+import json
 import os
 import sys
 import tempfile
@@ -125,6 +128,48 @@ class TestMainDecimalExceptionHandling(unittest.TestCase):
         # 죽지 않는지) 확인한다.
         code = portfolio_dashboard.main([])
         self.assertEqual(code, 1)
+
+
+class TestMainHappyPath(unittest.TestCase):
+    """main()의 정상 경로(JSON 출력, 조회 실패 유무에 따른 종료 코드)를 검증한다.
+
+    build_dashboard() 자체는 TestBuildDashboard에서 이미 충분히 테스트했으므로,
+    여기서는 main()이 그 결과를 stdout JSON과 종료 코드로 올바르게 조립하는지만
+    확인한다 — 이전까지는 DecimalException 예외 경로만 있고 정상 경로가 비어 있었다.
+    """
+
+    def _write(self, tmp_dir: str, content: str) -> Path:
+        path = Path(tmp_dir) / "positions.md"
+        path.write_text(content, encoding="utf-8")
+        return path
+
+    @patch("portfolio_dashboard.market_data.get_quote", side_effect=_fake_get_quote)
+    def test_no_errors_prints_json_and_returns_0(self, _mock_quote):
+        content = (
+            "| 티커 | 상태 | 진입가 | 손절가 | 목표가 | 계좌리스크% |\n"
+            "|---|---|---|---|---|---|\n"
+            "| AAPL | 보유중 | 200 | 190 | 260 | 1.5 |\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, content)
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                code = portfolio_dashboard.main(["--positions-file", str(path)])
+        self.assertEqual(code, 0)
+        result = json.loads(stdout.getvalue())
+        self.assertEqual(result["n_quoted"], 1)
+        self.assertEqual(result["errors"], [])
+
+    @patch("portfolio_dashboard.market_data.get_quote", side_effect=_fake_get_quote)
+    def test_partial_quote_failure_returns_1(self, _mock_quote):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, POSITIONS_CONTENT)  # BADCO는 _fake_get_quote가 실패시킴
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                code = portfolio_dashboard.main(["--positions-file", str(path)])
+        self.assertEqual(code, 1)
+        result = json.loads(stdout.getvalue())
+        self.assertEqual(len(result["errors"]), 1)
 
 
 if __name__ == "__main__":

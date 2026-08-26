@@ -9,6 +9,9 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
+import json
 import os
 import sys
 import unittest
@@ -166,6 +169,44 @@ class TestMainDecimalExceptionHandling(unittest.TestCase):
         # 않는지) 확인한다.
         code = market_data.main(["history", "--ticker", "AAPL", "--start", "2024-01-01", "--end", "2024-02-01"])
         self.assertEqual(code, 1)
+
+
+class TestMainQuoteAndHistoryHappyPath(unittest.TestCase):
+    """main()의 `quote`/`history` 성공 경로(CLI 인자 → 함수 호출 → JSON 출력)를 검증한다.
+
+    기존 테스트는 get_quote/get_history를 직접 호출하거나 main()의 예외 경로만
+    검증했다 — main()이 args.ticker/args.start/args.end를 올바르게 연결해서 성공
+    결과를 stdout에 JSON으로 출력하고 0을 반환하는 정상 경로는 비어 있었다.
+    """
+
+    @patch("market_data.yf")
+    def test_quote_command_prints_result_json_and_returns_0(self, mock_yf):
+        mock_yf.Ticker.return_value.fast_info = {"lastPrice": 123.4567}
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            code = market_data.main(["quote", "--ticker", "AAPL"])
+        self.assertEqual(code, 0)
+        result = json.loads(stdout.getvalue())
+        self.assertEqual(result, {"ticker": "AAPL", "price": "123.46", "as_of": result["as_of"]})
+
+    @patch("market_data.yf")
+    def test_history_command_prints_result_json_and_returns_0(self, mock_yf):
+        close_data = {_FakeDate("2023-01-03"): 122.876, _FakeDate("2023-01-04"): 124.144}
+        fake_df = MagicMock()
+        fake_df.empty = False
+        fake_df.__getitem__.return_value = _FakeClose(close_data)
+        mock_yf.download.return_value = fake_df
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            code = market_data.main(
+                ["history", "--ticker", "AAPL", "--start", "2023-01-01", "--end", "2023-01-05"]
+            )
+        self.assertEqual(code, 0)
+        result = json.loads(stdout.getvalue())
+        self.assertEqual(
+            result, [{"date": "2023-01-03", "close": "122.88"}, {"date": "2023-01-04", "close": "124.14"}]
+        )
 
 
 if __name__ == "__main__":

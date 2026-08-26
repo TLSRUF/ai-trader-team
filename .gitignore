@@ -14,6 +14,8 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+.coverage
+htmlcov/
 
 # Node
 node_modules/

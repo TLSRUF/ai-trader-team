@@ -31,7 +31,13 @@ jobs:
         with:
           python-version: "3.11"
           cache: "pip"
-          cache-dependency-path: requirements.txt
+          # requirements.txt만 추적하면 requirements-dev.txt(ruff/coverage 버전 등)만
+          # 바뀌었을 때 캐시 키가 그대로라 pip 캐시가 갱신되지 않는다 — 실제 설치
+          # 커맨드(아래 "Install dependencies")가 쓰는 requirements-dev.txt와, 그것이
+          # -r로 참조하는 requirements.txt 둘 다를 캐시 키에 반영한다.
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt

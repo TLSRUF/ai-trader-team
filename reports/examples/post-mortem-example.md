@@ -41,4 +41,4 @@ $ python tools/trading_rigor.py realized-pnl --entry 50 --stop 45 --target 65 --
 
 ## 데이터 신뢰도
 
-🟡 예시 문서이므로 모든 근거가 가상 데이터임 — 실제 실행 시에는 `positions.md`에 기록된 실제 청산가와 최초 `/trade-team` 리포트 대조 결과가 여기에 표시된다.
+🟢 0개 / 🟡 4개 / 🔴 0개 — 종합: 🟡 ([`trade-team-example.md`](trade-team-example.md)에서 인용 — 이 스킬 자체는 새로 리서치하지 않으므로 새 등급을 매기지 않는다)

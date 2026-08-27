@@ -1,0 +1,26 @@
+name: Dependency Review
+
+# dependabot.yml은 이미 존재하는 취약점을 주기적으로(weekly) 잡아내지만, PR이
+# 새로 추가하는 의존성이 알려진 취약점을 갖고 있는지는 이 워크플로우가 PR 시점에
+# 바로 확인한다. SECURITY.md가 명시한 이 프로젝트의 보안 위협 범위(의존성
+# 취약점)와 직결되며, #227(액션 SHA 고정)과 같은 맥락의 공급망 보안 강화다.
+on:
+  pull_request:
+    branches: [dev, main]
+
+# 최소 권한 원칙 — 이 워크플로우는 PR이 바꾸는 의존성 diff를 읽어 검사만 하고
+# 어떤 쓰기 작업도 하지 않는다 (test.yml과 동일한 방침).
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate

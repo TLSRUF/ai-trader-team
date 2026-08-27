@@ -237,6 +237,11 @@ class TestCorrelation(unittest.TestCase):
         result = correlation([1, 2, 3, 4, 5, 6, 7], [4, 1, 5, 9, 2, 6, 3])
         self.assertEqual(result["level"], "낮음")
 
+    def test_middle_correlation_level(self):
+        result = correlation([8, 19, 18, 5, 12], [20, 16, 19, 3, 20])
+        self.assertEqual(result["correlation"], "0.5309")
+        self.assertEqual(result["level"], "중간")
+
 
 class TestPortfolioHeat(unittest.TestCase):
     def test_requires_at_least_one_position(self):
@@ -308,6 +313,21 @@ class TestLoadOpenRiskPcts(unittest.TestCase):
             path = self._write(tmp, content)
             with self.assertRaises(ValueError):
                 load_open_risk_pcts(path)
+
+    def test_skips_open_position_with_blank_risk_pct(self):
+        # "보유중"이라도 계좌리스크% 칸이 비어 있으면(원장 기록 누락) 값을 지어내지
+        # 않고 건너뛴다 — 나머지 보유중 행은 그대로 집계에 포함된다.
+        content = (
+            "# 보유 포지션 원장\n\n"
+            "## 현재 포지션\n\n"
+            "| 티커 | 상태 | 진입일 | 진입가 | 손절가 | 목표가 | 계좌리스크% | 최초 테제 | 비고 |\n"
+            "|---|---|---|---|---|---|---|---|---|\n"
+            "| AAPL | 보유중 | 2026-08-01 | 200 | 190 | 230 | | t1 | |\n"
+            "| NVDA | 보유중 | 2026-08-15 | 120 | 110 | 150 | 2.5 | t3 | |\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, content)
+            self.assertEqual(load_open_risk_pcts(path), ["2.5"])
 
     def test_feeds_directly_into_portfolio_heat(self):
         content = (

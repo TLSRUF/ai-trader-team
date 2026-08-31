@@ -1,5 +1,5 @@
 # 개발/CI 전용 의존성. requirements.txt(런타임 의존성)와 분리해,
 # 실제 사용자가 tools/*.py를 실행하는 데는 이 파일이 필요 없게 한다.
 -r requirements.txt
-ruff>=0.8.0
+ruff>=0.16.5
 coverage>=7.0

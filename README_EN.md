@@ -31,7 +31,7 @@ Tool Layer    (tools/)    ← precise calculation · data verification
 Report Layer  (reports/)  ← ledgers/artifacts, state re-read by the next run
 ```
 
-See [docs/architecture.md](docs/architecture.md) for a detailed breakdown of each layer.
+See [docs/architecture.md](docs/architecture.md) for a detailed breakdown of each layer. To see visually how the 4 agents run in parallel during `/trade-team`, check the **[how-it-works page](https://tlsruf.github.io/ai-trader-team/)** (한국어/English/中文).
 
 ## Installation
 

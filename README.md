@@ -31,7 +31,7 @@ Tool Layer    (tools/)    ← 정밀 계산 · 데이터 검증
 Report Layer  (reports/)  ← 원장·산출물, 다음 실행이 다시 읽어들이는 상태
 ```
 
-계층별 자세한 설명은 [docs/architecture.md](docs/architecture.md)를 참고하세요.
+계층별 자세한 설명은 [docs/architecture.md](docs/architecture.md)를 참고하세요. `/trade-team` 실행 시 4개 에이전트가 병렬로 어떻게 움직이는지 시각적으로 보고 싶다면 **[작동 원리 페이지](https://tlsruf.github.io/ai-trader-team/)**(한국어/English/中文)를 확인하세요.
 
 ## 설치
 

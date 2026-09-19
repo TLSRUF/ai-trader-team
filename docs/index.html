@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Trader Team — How It Works</title>
+<meta name="description" content="AI Trader Team의 4계층 구조와 /trade-team 파이프라인이 실제로 어떻게 동작하는지 보여주는 페이지.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#f7f7f5;
+    --bg-elevated:#ffffff;
+    --text:#1c1c1a;
+    --text-dim:#5b5b56;
+    --border:#e4e2dc;
+    --accent:#1d6f5c;
+    --accent-soft:#e4f2ee;
+    --bull:#1d6f5c;
+    --bear:#a13d3d;
+    --neutral:#8a6d1f;
+    --code-bg:#eeece5;
+    --shadow: 0 1px 2px rgba(20,20,15,.04), 0 6px 20px rgba(20,20,15,.05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#15161a;
+      --bg-elevated:#1c1e23;
+      --text:#e9e9e6;
+      --text-dim:#a3a39c;
+      --border:#2c2e34;
+      --accent:#5fcbaa;
+      --accent-soft:#1c2b27;
+      --bull:#5fcbaa;
+      --bear:#e08080;
+      --neutral:#e0c268;
+      --code-bg:#22242a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Pretendard,"Noto Sans KR","Noto Sans SC",Roboto,sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  code, .mono{
+    font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    font-size:.92em;
+  }
+  a{color:var(--accent);}
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px;}
+
+  /* ---- nav ---- */
+  header.top{
+    position:sticky; top:0; z-index:20;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:14px 0; gap:16px; flex-wrap:wrap;}
+  .brand{display:flex; align-items:baseline; gap:10px;}
+  .brand-name{font-weight:700; font-size:1.05rem; letter-spacing:-.01em;}
+  .brand-tag{font-size:.85rem; color:var(--text-dim);}
+  .top-actions{display:flex; align-items:center; gap:10px;}
+  .langsw{display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden;}
+  .langsw button{
+    appearance:none; border:0; background:transparent; color:var(--text-dim);
+    padding:6px 12px; font-size:.85rem; cursor:pointer; font-family:inherit;
+  }
+  .langsw button + button{border-left:1px solid var(--border);}
+  .langsw button.active{background:var(--accent); color:#fff; font-weight:600;}
+  .gh-link{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid var(--border); border-radius:8px; padding:6px 12px;
+    font-size:.85rem; text-decoration:none; color:var(--text);
+  }
+  .gh-link:hover{border-color:var(--accent); color:var(--accent);}
+
+  /* ---- hero ---- */
+  .hero{padding:56px 0 40px;}
+  .kicker{
+    display:inline-block; font-size:.78rem; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--accent); background:var(--accent-soft);
+    padding:4px 10px; border-radius:999px; margin-bottom:16px;
+  }
+  h1{font-size:2.1rem; line-height:1.3; margin:0 0 14px; letter-spacing:-.01em;}
+  .hero p{font-size:1.05rem; color:var(--text-dim); max-width:640px; margin:0 0 8px;}
+  .disclaimer{
+    margin-top:22px; font-size:.82rem; color:var(--text-dim);
+    border-left:3px solid var(--border); padding:8px 14px; background:var(--bg-elevated); border-radius:0 8px 8px 0;
+  }
+
+  section{padding:44px 0; border-top:1px solid var(--border);}
+  .sec-head{max-width:680px; margin-bottom:32px;}
+  h2{font-size:1.5rem; margin:0 0 10px; letter-spacing:-.01em;}
+  .sec-head p{color:var(--text-dim); margin:0; font-size:.98rem;}
+
+  /* ---- layer diagram ---- */
+  .layers{display:flex; flex-direction:column; gap:0; max-width:640px; margin:0 auto;}
+  .layer-row{display:grid; grid-template-columns:1fr auto; align-items:stretch; gap:14px;}
+  .layer-card{
+    background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px;
+    padding:16px 18px; box-shadow:var(--shadow);
+  }
+  .layer-name{font-weight:700; font-size:1rem;}
+  .layer-path{color:var(--accent); margin-left:8px;}
+  .layer-desc{color:var(--text-dim); font-size:.9rem; margin-top:6px;}
+  .layer-arrows{display:flex; flex-direction:column; align-items:center; justify-content:center; width:34px; color:var(--text-dim); font-size:.75rem;}
+  .layer-arrows .down{font-size:1.1rem; line-height:1;}
+  .feedback-note{
+    text-align:center; color:var(--text-dim); font-size:.82rem; margin-top:18px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .feedback-note .arrow-up{color:var(--accent); font-weight:700;}
+
+  /* ---- pipeline steps ---- */
+  .steps{display:flex; flex-direction:column; gap:0;}
+  .step{display:grid; grid-template-columns:36px 1fr; gap:16px; position:relative; padding-bottom:28px;}
+  .step:last-child{padding-bottom:0;}
+  .step-num{
+    width:36px; height:36px; border-radius:50%; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.9rem;
+    position:relative; z-index:1;
+  }
+  .step:not(:last-child)::before{
+    content:""; position:absolute; left:17px; top:36px; bottom:0; width:2px; background:var(--border);
+  }
+  .step-title{font-weight:700; margin-bottom:4px;}
+  .step-desc{color:var(--text-dim); font-size:.93rem;}
+  .step-desc code{background:var(--code-bg); padding:1px 6px; border-radius:5px;}
+
+  .agent-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px;}
+  .agent-card{
+    background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px; padding:14px;
+  }
+  .agent-emoji{font-size:1.3rem;}
+  .agent-name{font-weight:700; font-size:.92rem; margin-top:4px;}
+  .agent-q{color:var(--text-dim); font-size:.82rem; margin-top:6px; font-style:italic;}
+
+  .tag-row{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;}
+  .tag{font-size:.75rem; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--text-dim);}
+  .tag.bull{color:var(--bull); border-color:var(--bull);}
+  .tag.bear{color:var(--bear); border-color:var(--bear);}
+  .tag.neutral{color:var(--neutral); border-color:var(--neutral);}
+  .tag.gray{background:var(--code-bg);}
+
+  .callout{
+    background:var(--accent-soft); border:1px solid var(--accent); border-radius:10px;
+    padding:14px 16px; font-size:.9rem; margin-top:16px;
+  }
+  .callout strong{color:var(--accent);}
+
+  /* ---- tool layer ---- */
+  .tool-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .tool-card{background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px; padding:14px;}
+  .tool-card code{display:block; color:var(--accent); margin-bottom:6px;}
+  .tool-card span{color:var(--text-dim); font-size:.86rem;}
+  .quote{
+    margin-top:22px; padding:16px 20px; border-left:3px solid var(--accent);
+    font-size:1.02rem; font-style:italic; color:var(--text);
+  }
+
+  /* ---- skills cycle ---- */
+  .skill-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:10px;}
+  .skill-card{background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px; padding:12px; font-size:.85rem;}
+  .skill-cmd{color:var(--accent); font-weight:700;}
+  .skill-cost{display:inline-block; font-size:.7rem; margin-top:4px; padding:1px 7px; border-radius:999px; background:var(--code-bg); color:var(--text-dim);}
+  .skill-desc{color:var(--text-dim); margin-top:6px; font-size:.82rem;}
+  .flow-arrow{text-align:center; color:var(--text-dim); font-size:1.1rem;}
+
+  footer{border-top:1px solid var(--border); padding:32px 0 48px; color:var(--text-dim); font-size:.85rem;}
+  footer a{color:var(--text-dim); text-decoration:underline;}
+
+  [data-lang-ui]{display:none;}
+  [data-lang-ui].active{display:inline-flex;}
+
+  @media (max-width:760px){
+    .agent-grid{grid-template-columns:repeat(2,1fr);}
+    .tool-grid{grid-template-columns:repeat(2,1fr);}
+    .skill-grid{grid-template-columns:repeat(2,1fr);}
+    h1{font-size:1.6rem;}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap topbar">
+    <div class="brand">
+      <span class="brand-name">🧭 AI Trader Team</span>
+      <span class="brand-tag" data-i18n="nav.tagline">작동 원리</span>
+    </div>
+    <div class="top-actions">
+      <div class="langsw" role="group" aria-label="language">
+        <button type="button" data-lang-btn="ko" class="active">한국어</button>
+        <button type="button" data-lang-btn="en">English</button>
+        <button type="button" data-lang-btn="zh">中文</button>
+      </div>
+      <a class="gh-link" href="https://github.com/TLSRUF/ai-trader-team" target="_blank" rel="noopener">
+        GitHub ↗
+      </a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero" style="border-top:0;">
+    <span class="kicker">how it works</span>
+    <h1 data-i18n="hero.title">이 리포트는 실제로 이렇게 만들어집니다</h1>
+    <p data-i18n="hero.p1">AI Trader Team은 슬래시 커맨드(스킬) → 병렬 서브에이전트(관점별 페르소나) → 결정론적 계산 도구, 3개의 실행 계층과 결과를 다음 실행으로 이어주는 원장(Report) 계층으로 구성됩니다.</p>
+    <p data-i18n="hero.p2">아래에서 한 종목을 분석할 때 실제로 무슨 일이 벌어지는지 단계별로 보여드립니다.</p>
+    <div class="disclaimer" data-i18n="hero.disclaimer">⚠️ 교육 및 연구 목적입니다. 투자자문이 아니며, 최종 판단과 책임은 사용자 본인에게 있습니다.</div>
+  </section>
+
+  <!-- ============ SECTION 1: 4-LAYER ARCHITECTURE ============ -->
+  <section id="architecture">
+    <div class="sec-head">
+      <h2 data-i18n="sec1.title">4개 계층, 하나의 순환 구조</h2>
+      <p data-i18n="sec1.lede">세 계층이 매 실행마다 계산을 담당하고, 네 번째 계층이 그 결과를 다음 실행이 다시 참고할 수 있도록 이어줍니다.</p>
+    </div>
+
+    <div class="layers">
+      <div class="layer-row">
+        <div class="layer-card">
+          <div><span class="layer-name" data-i18n="layer.skill.name">Skill Layer</span><span class="layer-path mono">skills/*.md</span></div>
+          <div class="layer-desc" data-i18n="layer.skill.desc">시나리오별 진입점. 슬래시 커맨드 하나가 어떤 에이전트를 몇 개, 어떤 방식으로 부를지 정의합니다.</div>
+        </div>
+        <div class="layer-arrows"><span class="down">↓</span></div>
+      </div>
+      <div class="layer-row">
+        <div class="layer-card">
+          <div><span class="layer-name" data-i18n="layer.agent.name">Agent Layer</span><span class="layer-path mono">agents/*.md</span></div>
+          <div class="layer-desc" data-i18n="layer.agent.desc">관점별 병렬 서브에이전트. 서로 다른 판단 기준을 갖도록 설계해, 의견이 갈리는 것 자체가 신호가 되게 합니다.</div>
+        </div>
+        <div class="layer-arrows"><span class="down">↓</span></div>
+      </div>
+      <div class="layer-row">
+        <div class="layer-card">
+          <div><span class="layer-name" data-i18n="layer.tool.name">Tool Layer</span><span class="layer-path mono">tools/*.py</span></div>
+          <div class="layer-desc" data-i18n="layer.tool.desc">정밀 계산과 데이터 검증. 서술(LLM)과 계산을 분리해 부동소수점 오차·암산 실수를 원천 차단합니다.</div>
+        </div>
+        <div class="layer-arrows"><span class="down">↓</span></div>
+      </div>
+      <div class="layer-row">
+        <div class="layer-card">
+          <div><span class="layer-name" data-i18n="layer.report.name">Report Layer</span><span class="layer-path mono">reports/*.md</span></div>
+          <div class="layer-desc" data-i18n="layer.report.desc">원장과 실행 산출물. 스킬 실행 간 상태를 이어주는 단일 소스입니다.</div>
+        </div>
+        <div class="layer-arrows"></div>
+      </div>
+    </div>
+    <div class="feedback-note">
+      <span class="arrow-up">↑</span>
+      <span data-i18n="sec1.feedback">Report Layer는 쌓이기만 하지 않습니다 — 다음 스킬 호출이 이 원장을 다시 읽어들입니다.</span>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 2: /trade-team PIPELINE ============ -->
+  <section id="pipeline">
+    <div class="sec-head">
+      <h2 data-i18n="sec2.title">대표 파이프라인 — <code>/trade-team</code></h2>
+      <p data-i18n="sec2.lede">하나의 종목을 4개 관점으로 동시에 심층 분석하는, 가장 비용이 큰(고비용·4-agent) 스킬입니다.</p>
+    </div>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-title" data-i18n="step1.title">사용자가 명령을 실행합니다</div>
+          <div class="step-desc" data-i18n="step1.desc"><code>/trade-team AAPL</code> — 분석 대상 티커 하나를 인자로 받습니다.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-title" data-i18n="step2.title">조사 가능성을 먼저 점검합니다</div>
+          <div class="step-desc" data-i18n="step2.desc">웹 검색이 불가능하면 여기서 중단합니다 — 서브에이전트가 조용히 학습 지식만으로 답하는 것을 막기 위함입니다. 가능하면 데이터 충분도를 A(충분)/B(부분적)/C(부족) 등급으로 매깁니다.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-title" data-i18n="step3.title">4개 관점을 같은 응답 안에서 동시에 병렬 실행합니다</div>
+          <div class="step-desc" data-i18n="step3.desc">순차 호출은 금지입니다 — 순차로 하면 병렬의 의미가 없습니다. 각 서브에이전트는 최소 2개 이상 독립 출처로 수치를 교차검증하고, 근거마다 🟢/🟡/🔴 신뢰도를 태깅합니다.</div>
+
+          <div class="agent-grid">
+            <div class="agent-card">
+              <div class="agent-emoji">📈</div>
+              <div class="agent-name" data-i18n="agent.trend.name">추세 분석가</div>
+              <div class="agent-q" data-i18n="agent.trend.q">"지금 추세를 따라 진입해야 하는가?"</div>
+            </div>
+            <div class="agent-card">
+              <div class="agent-emoji">🌐</div>
+              <div class="agent-name" data-i18n="agent.macro.name">매크로 분석가</div>
+              <div class="agent-q" data-i18n="agent.macro.q">"거시 환경이 우호적인가, 역풍인가?"</div>
+            </div>
+            <div class="agent-card">
+              <div class="agent-emoji">🛡️</div>
+              <div class="agent-name" data-i18n="agent.risk.name">리스크 관리자</div>
+              <div class="agent-q" data-i18n="agent.risk.q">"틀렸을 때 얼마나 잃는가?"</div>
+            </div>
+            <div class="agent-card">
+              <div class="agent-emoji">💧</div>
+              <div class="agent-name" data-i18n="agent.flow.name">수급 분석가</div>
+              <div class="agent-q" data-i18n="agent.flow.q">"실제로 사고 있는 주체는 누구인가?"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-title" data-i18n="step4.title">팀장이 4차원 점수표로 종합합니다</div>
+          <div class="step-desc" data-i18n="step4.desc">각 에이전트의 점수(0~5)와 Bull/Bear/Neutral 태그를 한 표에 나란히 놓습니다. 절충하지 않습니다.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <div class="step-title" data-i18n="step5.title">잠정 판정</div>
+          <div class="step-desc" data-i18n="step5.desc">4개 태그가 대체로 일치하면 그 방향으로 잠정 판정합니다. 태그가 갈리거나 점수 분산이 크면 곧바로 Gray Zone으로 확정합니다 (이 경우 6단계는 생략).</div>
+          <div class="tag-row">
+            <span class="tag bull" data-i18n="tag.bull">Bull</span>
+            <span class="tag bear" data-i18n="tag.bear">Bear</span>
+            <span class="tag neutral" data-i18n="tag.neutral">Neutral</span>
+            <span class="tag gray" data-i18n="tag.gray">Gray Zone — 의견 불일치 자체가 신호</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div>
+          <div class="step-title" data-i18n="step6.title">집계 역방향 검증 (잠정 판정이 수렴했을 때만)</div>
+          <div class="step-desc" data-i18n="step6.desc">4개 보고서의 "반증"/"실패 시나리오"를 전부 모아 하나로 합쳤을 때, 개별로는 안 보이던 새로운 복합 리스크가 드러나는지 확인합니다. 판정을 뒤집을 정도면 Gray Zone으로 하향하고, 아니면 캐비엇으로 명시합니다.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">7</div>
+        <div>
+          <div class="step-title" data-i18n="step7.title">최종 리포트</div>
+          <div class="step-desc" data-i18n="step7.desc">한줄 결론, (Gray Zone이면) 의견 불일치 설명, 리스크 관리자의 실패 시나리오(항상 별도 노출), 공격적/온건적/보수적 3단계 대응 전략, 4개 보고서를 집계한 데이터 신뢰도 종합(가장 약한 고리 기준)으로 구성됩니다.</div>
+          <div class="callout">
+            <strong data-i18n="callout.label">핵심:</strong> <span data-i18n="callout.body">의견이 갈리는 것은 버그가 아니라 신호입니다. 억지로 하나의 결론으로 합치지 않습니다.</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ SECTION 3: DETERMINISTIC TOOL LAYER ============ -->
+  <section id="tools">
+    <div class="sec-head">
+      <h2 data-i18n="sec3.title">숫자는 LLM이 아니라 결정론적 코드가 계산합니다</h2>
+      <p data-i18n="sec3.lede"><code>tools/trading_rigor.py</code>가 Decimal 기반으로 정밀 계산하고, 에이전트는 그 결과를 그대로 인용합니다.</p>
+    </div>
+    <div class="tool-grid">
+      <div class="tool-card"><code>position-size</code><span data-i18n="tool.position">고정 비율 기준 포지션 사이징</span></div>
+      <div class="tool-card"><code>kelly</code><span data-i18n="tool.kelly">켈리 기준 최적 베팅 비율</span></div>
+      <div class="tool-card"><code>risk-reward</code><span data-i18n="tool.rr">손절·목표가 기반 손익비</span></div>
+      <div class="tool-card"><code>correlation</code><span data-i18n="tool.corr">보유 포지션 간 상관계수</span></div>
+      <div class="tool-card"><code>portfolio-heat</code><span data-i18n="tool.heat">계좌 전체 합산 리스크</span></div>
+      <div class="tool-card"><code>cross-validate</code><span data-i18n="tool.cv">시세/지표 2개 이상 출처 교차검증</span></div>
+    </div>
+    <div class="quote" data-i18n="sec3.quote">"에이전트는 숫자를 인용하지, 계산하지 않는다."</div>
+  </section>
+
+  <!-- ============ SECTION 4: OTHER SKILLS + LEDGER CYCLE ============ -->
+  <section id="cycle">
+    <div class="sec-head">
+      <h2 data-i18n="sec4.title">나머지 스킬과 <code>reports/</code> 원장이 만드는 순환</h2>
+      <p data-i18n="sec4.lede">스킬들은 서로 독립적으로 실행되지만, 원장 덕분에 매번 같은 정보를 다시 묻지 않습니다.</p>
+    </div>
+
+    <div class="skill-grid">
+      <div class="skill-card">
+        <div class="skill-cmd">/screen</div>
+        <div class="skill-cost" data-i18n="cost.low">저비용</div>
+        <div class="skill-desc" data-i18n="skill.screen">7개 하드 메트릭으로 후보를 빠르게 Pass/Fail/Watch 판정</div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-cmd">/trade-team</div>
+        <div class="skill-cost" data-i18n="cost.high">고비용 · 4-agent</div>
+        <div class="skill-desc" data-i18n="skill.tradeteam">Pass한 종목만 4개 관점 병렬 심층 분석</div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-cmd">/position-review</div>
+        <div class="skill-cost" data-i18n="cost.low">저비용</div>
+        <div class="skill-desc" data-i18n="skill.review">보유 포지션의 최초 진입 근거가 여전히 유효한지 재점검</div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-cmd">/portfolio</div>
+        <div class="skill-cost" data-i18n="cost.low2">저비용 · LLM 판단 없음</div>
+        <div class="skill-desc" data-i18n="skill.portfolio">보유 포지션 전체의 실시간 손익·포트폴리오 히트 대시보드</div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-cmd">/post-mortem</div>
+        <div class="skill-cost" data-i18n="cost.low">저비용</div>
+        <div class="skill-desc" data-i18n="skill.postmortem">청산된 포지션의 실현 손익(R-멀티플)과 판단 귀인 회고</div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:20px;">
+      <strong data-i18n="ledger.label">원장:</strong>
+      <span data-i18n="ledger.body"><code>reports/positions.md</code>(보유 포지션), <code>reports/watchlist.md</code>(관심 종목)에 실제 데이터만 기록합니다. <code>/position-review</code>·<code>/screen</code>을 인자 없이 호출하면 이 표 전체를 대상으로 삼고, <code>/post-mortem</code>은 청산가 칸을 조회해 실현 손익을 계산합니다.</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p data-i18n="footer.p1">이 구조는 <a href="https://github.com/xbtlin/ai-berkshire" target="_blank" rel="noopener">xbtlin/ai-berkshire</a>의 3계층 설계(Skill/Agent/Tool)를 벤치마킹했습니다.</p>
+    <p data-i18n="footer.p2">MIT 라이선스 · 교육 및 연구 목적이며 투자자문이 아닙니다.</p>
+    <p><a href="https://github.com/TLSRUF/ai-trader-team" target="_blank" rel="noopener">github.com/TLSRUF/ai-trader-team</a> · <a href="architecture.md" data-i18n="footer.moredocs">더 자세한 구조 설명 (architecture.md)</a></p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var DICT = {
+    ko: {
+      "nav.tagline": "작동 원리",
+      "hero.title": "이 리포트는 실제로 이렇게 만들어집니다",
+      "hero.p1": "AI Trader Team은 슬래시 커맨드(스킬) → 병렬 서브에이전트(관점별 페르소나) → 결정론적 계산 도구, 3개의 실행 계층과 결과를 다음 실행으로 이어주는 원장(Report) 계층으로 구성됩니다.",
+      "hero.p2": "아래에서 한 종목을 분석할 때 실제로 무슨 일이 벌어지는지 단계별로 보여드립니다.",
+      "hero.disclaimer": "⚠️ 교육 및 연구 목적입니다. 투자자문이 아니며, 최종 판단과 책임은 사용자 본인에게 있습니다.",
+      "sec1.title": "4개 계층, 하나의 순환 구조",
+      "sec1.lede": "세 계층이 매 실행마다 계산을 담당하고, 네 번째 계층이 그 결과를 다음 실행이 다시 참고할 수 있도록 이어줍니다.",
+      "layer.skill.name": "Skill Layer",
+      "layer.skill.desc": "시나리오별 진입점. 슬래시 커맨드 하나가 어떤 에이전트를 몇 개, 어떤 방식으로 부를지 정의합니다.",
+      "layer.agent.name": "Agent Layer",
+      "layer.agent.desc": "관점별 병렬 서브에이전트. 서로 다른 판단 기준을 갖도록 설계해, 의견이 갈리는 것 자체가 신호가 되게 합니다.",
+      "layer.tool.name": "Tool Layer",
+      "layer.tool.desc": "정밀 계산과 데이터 검증. 서술(LLM)과 계산을 분리해 부동소수점 오차·암산 실수를 원천 차단합니다.",
+      "layer.report.name": "Report Layer",
+      "layer.report.desc": "원장과 실행 산출물. 스킬 실행 간 상태를 이어주는 단일 소스입니다.",
+      "sec1.feedback": "Report Layer는 쌓이기만 하지 않습니다 — 다음 스킬 호출이 이 원장을 다시 읽어들입니다.",
+      "sec2.title": "대표 파이프라인 — <code>/trade-team</code>",
+      "sec2.lede": "하나의 종목을 4개 관점으로 동시에 심층 분석하는, 가장 비용이 큰(고비용·4-agent) 스킬입니다.",
+      "step1.title": "사용자가 명령을 실행합니다",
+      "step1.desc": "<code>/trade-team AAPL</code> — 분석 대상 티커 하나를 인자로 받습니다.",
+      "step2.title": "조사 가능성을 먼저 점검합니다",
+      "step2.desc": "웹 검색이 불가능하면 여기서 중단합니다 — 서브에이전트가 조용히 학습 지식만으로 답하는 것을 막기 위함입니다. 가능하면 데이터 충분도를 A(충분)/B(부분적)/C(부족) 등급으로 매깁니다.",
+      "step3.title": "4개 관점을 같은 응답 안에서 동시에 병렬 실행합니다",
+      "step3.desc": "순차 호출은 금지입니다 — 순차로 하면 병렬의 의미가 없습니다. 각 서브에이전트는 최소 2개 이상 독립 출처로 수치를 교차검증하고, 근거마다 🟢/🟡/🔴 신뢰도를 태깅합니다.",
+      "agent.trend.name": "추세 분석가",
+      "agent.trend.q": "\"지금 추세를 따라 진입해야 하는가?\"",
+      "agent.macro.name": "매크로 분석가",
+      "agent.macro.q": "\"거시 환경이 우호적인가, 역풍인가?\"",
+      "agent.risk.name": "리스크 관리자",
+      "agent.risk.q": "\"틀렸을 때 얼마나 잃는가?\"",
+      "agent.flow.name": "수급 분석가",
+      "agent.flow.q": "\"실제로 사고 있는 주체는 누구인가?\"",
+      "step4.title": "팀장이 4차원 점수표로 종합합니다",
+      "step4.desc": "각 에이전트의 점수(0~5)와 Bull/Bear/Neutral 태그를 한 표에 나란히 놓습니다. 절충하지 않습니다.",
+      "step5.title": "잠정 판정",
+      "step5.desc": "4개 태그가 대체로 일치하면 그 방향으로 잠정 판정합니다. 태그가 갈리거나 점수 분산이 크면 곧바로 Gray Zone으로 확정합니다 (이 경우 6단계는 생략).",
+      "tag.bull": "Bull",
+      "tag.bear": "Bear",
+      "tag.neutral": "Neutral",
+      "tag.gray": "Gray Zone — 의견 불일치 자체가 신호",
+      "step6.title": "집계 역방향 검증 (잠정 판정이 수렴했을 때만)",
+      "step6.desc": "4개 보고서의 \"반증\"/\"실패 시나리오\"를 전부 모아 하나로 합쳤을 때, 개별로는 안 보이던 새로운 복합 리스크가 드러나는지 확인합니다. 판정을 뒤집을 정도면 Gray Zone으로 하향하고, 아니면 캐비엇으로 명시합니다.",
+      "step7.title": "최종 리포트",
+      "step7.desc": "한줄 결론, (Gray Zone이면) 의견 불일치 설명, 리스크 관리자의 실패 시나리오(항상 별도 노출), 공격적/온건적/보수적 3단계 대응 전략, 4개 보고서를 집계한 데이터 신뢰도 종합(가장 약한 고리 기준)으로 구성됩니다.",
+      "callout.label": "핵심:",
+      "callout.body": "의견이 갈리는 것은 버그가 아니라 신호입니다. 억지로 하나의 결론으로 합치지 않습니다.",
+      "sec3.title": "숫자는 LLM이 아니라 결정론적 코드가 계산합니다",
+      "sec3.lede": "<code>tools/trading_rigor.py</code>가 Decimal 기반으로 정밀 계산하고, 에이전트는 그 결과를 그대로 인용합니다.",
+      "tool.position": "고정 비율 기준 포지션 사이징",
+      "tool.kelly": "켈리 기준 최적 베팅 비율",
+      "tool.rr": "손절·목표가 기반 손익비",
+      "tool.corr": "보유 포지션 간 상관계수",
+      "tool.heat": "계좌 전체 합산 리스크",
+      "tool.cv": "시세/지표 2개 이상 출처 교차검증",
+      "sec3.quote": "\"에이전트는 숫자를 인용하지, 계산하지 않는다.\"",
+      "sec4.title": "나머지 스킬과 <code>reports/</code> 원장이 만드는 순환",
+      "sec4.lede": "스킬들은 서로 독립적으로 실행되지만, 원장 덕분에 매번 같은 정보를 다시 묻지 않습니다.",
+      "cost.low": "저비용",
+      "cost.high": "고비용 · 4-agent",
+      "cost.low2": "저비용 · LLM 판단 없음",
+      "skill.screen": "7개 하드 메트릭으로 후보를 빠르게 Pass/Fail/Watch 판정",
+      "skill.tradeteam": "Pass한 종목만 4개 관점 병렬 심층 분석",
+      "skill.review": "보유 포지션의 최초 진입 근거가 여전히 유효한지 재점검",
+      "skill.portfolio": "보유 포지션 전체의 실시간 손익·포트폴리오 히트 대시보드",
+      "skill.postmortem": "청산된 포지션의 실현 손익(R-멀티플)과 판단 귀인 회고",
+      "ledger.label": "원장:",
+      "ledger.body": "<code>reports/positions.md</code>(보유 포지션), <code>reports/watchlist.md</code>(관심 종목)에 실제 데이터만 기록합니다. <code>/position-review</code>·<code>/screen</code>을 인자 없이 호출하면 이 표 전체를 대상으로 삼고, <code>/post-mortem</code>은 청산가 칸을 조회해 실현 손익을 계산합니다.",
+      "footer.p1": "이 구조는 <a href=\"https://github.com/xbtlin/ai-berkshire\" target=\"_blank\" rel=\"noopener\">xbtlin/ai-berkshire</a>의 3계층 설계(Skill/Agent/Tool)를 벤치마킹했습니다.",
+      "footer.p2": "MIT 라이선스 · 교육 및 연구 목적이며 투자자문이 아닙니다.",
+      "footer.moredocs": "더 자세한 구조 설명 (architecture.md)"
+    },
+    en: {
+      "nav.tagline": "how it works",
+      "hero.title": "How this report actually gets built",
+      "hero.p1": "AI Trader Team is a slash-command (Skill) → parallel sub-agent (perspective persona) → deterministic calculation (Tool) pipeline, plus a fourth layer (Report) that carries results forward into the next run.",
+      "hero.p2": "Below is a step-by-step walkthrough of what actually happens when you analyze a ticker.",
+      "hero.disclaimer": "⚠️ Educational and research use only. Not investment advice — decisions and outcomes are the user's own responsibility.",
+      "sec1.title": "Four layers, one loop",
+      "sec1.lede": "Three layers handle computation on every run; a fourth layer carries the output forward so the next run can read it back.",
+      "layer.skill.name": "Skill Layer",
+      "layer.skill.desc": "Scenario-specific entry points. Each slash command defines which agents to call, how many, and how (parallel/sequential).",
+      "layer.agent.name": "Agent Layer",
+      "layer.agent.desc": "Parallel sub-agents, one per perspective. Deliberately given different judgment criteria, so disagreement itself becomes a signal.",
+      "layer.tool.name": "Tool Layer",
+      "layer.tool.desc": "Precise calculation and data validation. Separates narrative (LLM) from arithmetic, ruling out floating-point drift and mental-math mistakes.",
+      "layer.report.name": "Report Layer",
+      "layer.report.desc": "Ledgers and run artifacts. The single source that carries state between skill runs.",
+      "sec1.feedback": "The Report Layer isn't a write-only log — the next skill invocation reads this ledger back in.",
+      "sec2.title": "The flagship pipeline — <code>/trade-team</code>",
+      "sec2.lede": "The most expensive (high-cost, 4-agent) skill: a single ticker analyzed simultaneously from 4 perspectives.",
+      "step1.title": "The user runs the command",
+      "step1.desc": "<code>/trade-team AAPL</code> — takes one ticker as its argument.",
+      "step2.title": "Research feasibility is checked first",
+      "step2.desc": "If web search isn't available, the run stops here — this prevents a sub-agent from quietly answering from training knowledge alone. If it is, data sufficiency is graded A (ample) / B (partial) / C (scarce).",
+      "step3.title": "4 perspectives run in parallel, within the same response",
+      "step3.desc": "Sequential calls are forbidden — calling them one after another defeats the point of parallelism. Each sub-agent cross-checks key numbers against at least 2 independent sources and tags every claim 🟢/🟡/🔴 for reliability.",
+      "agent.trend.name": "Trend Analyst",
+      "agent.trend.q": "\"Should I enter with the current trend?\"",
+      "agent.macro.name": "Macro Analyst",
+      "agent.macro.q": "\"Is the macro backdrop a tailwind or headwind?\"",
+      "agent.risk.name": "Risk Manager",
+      "agent.risk.q": "\"How much do I lose if I'm wrong?\"",
+      "agent.flow.name": "Flow Analyst",
+      "agent.flow.q": "\"Who is actually buying right now?\"",
+      "step4.title": "The lead synthesizes a 4-dimension scorecard",
+      "step4.desc": "Every agent's score (0–5) and Bull/Bear/Neutral tag are placed side by side in one table. Nothing is averaged away.",
+      "step5.title": "Provisional verdict",
+      "step5.desc": "If the 4 tags mostly agree, the lead provisionally calls that direction. If they diverge or scores are spread wide, it's declared Gray Zone immediately (step 6 is skipped in that case).",
+      "tag.bull": "Bull",
+      "tag.bear": "Bear",
+      "tag.neutral": "Neutral",
+      "tag.gray": "Gray Zone — disagreement itself is the signal",
+      "step6.title": "Aggregate reverse-verification (only if the verdict converged)",
+      "step6.desc": "All 4 reports' counter-arguments / failure scenarios are pooled into one, checking whether combining them reveals a new compound risk invisible to any single agent. If it's big enough to flip the call, the verdict downgrades to Gray Zone; otherwise it's noted as a caveat.",
+      "step7.title": "Final report",
+      "step7.desc": "A one-line conclusion, a disagreement explanation (if Gray Zone), the Risk Manager's failure scenarios (always surfaced separately), a 3-tier entry strategy (aggressive/moderate/conservative), and a data-reliability rollup across all 4 reports (weakest-link rule).",
+      "callout.label": "Key point:",
+      "callout.body": "Disagreement isn't a bug — it's the signal. Nothing gets forced into one averaged-away conclusion.",
+      "sec3.title": "Numbers are computed by deterministic code, not the LLM",
+      "sec3.lede": "<code>tools/trading_rigor.py</code> does the precise, Decimal-based math; agents cite the result verbatim.",
+      "tool.position": "Fixed-fractional position sizing",
+      "tool.kelly": "Kelly-criterion optimal bet sizing",
+      "tool.rr": "Risk/reward ratio from stop and target",
+      "tool.corr": "Correlation across held positions",
+      "tool.heat": "Aggregate account-wide risk",
+      "tool.cv": "Cross-checks quotes/indicators across ≥2 sources",
+      "sec3.quote": "\"Agents cite numbers, they don't compute them.\"",
+      "sec4.title": "The remaining skills and the <code>reports/</code> ledger loop",
+      "sec4.lede": "Skills run independently of each other, but the ledger means the user is never asked the same thing twice.",
+      "cost.low": "low cost",
+      "cost.high": "high cost · 4-agent",
+      "cost.low2": "low cost · no LLM judgment",
+      "skill.screen": "Fast Pass/Fail/Watch triage on 7 hard metrics",
+      "skill.tradeteam": "Deep 4-perspective analysis, only for tickers that passed screening",
+      "skill.review": "Re-checks whether the original entry thesis for a held position still holds",
+      "skill.portfolio": "Live P&L and portfolio-heat dashboard across all held positions",
+      "skill.postmortem": "Reviews realized P&L (R-multiple) and judgment attribution after exit",
+      "ledger.label": "Ledger:",
+      "ledger.body": "<code>reports/positions.md</code> (held positions) and <code>reports/watchlist.md</code> (watchlist) record only real data. Calling <code>/position-review</code> or <code>/screen</code> with no argument targets this whole table; <code>/post-mortem</code> reads the exit-price column to compute realized P&L.",
+      "footer.p1": "This structure benchmarks the 3-layer (Skill/Agent/Tool) design of <a href=\"https://github.com/xbtlin/ai-berkshire\" target=\"_blank\" rel=\"noopener\">xbtlin/ai-berkshire</a>.",
+      "footer.p2": "MIT licensed · educational/research use only, not investment advice.",
+      "footer.moredocs": "Full architecture writeup (architecture.md)"
+    },
+    zh: {
+      "nav.tagline": "运作原理",
+      "hero.title": "这份报告实际上是这样生成的",
+      "hero.p1": "AI Trader Team 由「斜杠命令（Skill）→ 并行子代理（不同视角的人格）→ 确定性计算工具（Tool）」三个执行层，加上把结果传递给下一次执行的第四层（Report）组成。",
+      "hero.p2": "下面按步骤展示分析一支股票时到底发生了什么。",
+      "hero.disclaimer": "⚠️ 仅供教育与研究用途，不构成投资建议。最终判断与后果由用户自行承担。",
+      "sec1.title": "四个层，一个循环",
+      "sec1.lede": "三个层负责每次执行的计算，第四层把结果留存下来，供下一次执行读取。",
+      "layer.skill.name": "Skill 层",
+      "layer.skill.desc": "按场景划分的入口。每个斜杠命令定义要调用哪些 agent、调用几个、以何种方式（并行/顺序）执行。",
+      "layer.agent.name": "Agent 层",
+      "layer.agent.desc": "按视角划分的并行子代理。刻意赋予不同的判断标准，让意见分歧本身成为有意义的信号。",
+      "layer.tool.name": "Tool 层",
+      "layer.tool.desc": "精确计算与数据校验。把叙述（LLM）与运算分离，从源头杜绝浮点误差与心算失误。",
+      "layer.report.name": "Report 层",
+      "layer.report.desc": "台账与执行产出。是在各次 Skill 执行之间传递状态的唯一数据源。",
+      "sec1.feedback": "Report 层不只是单向堆积记录——下一次 Skill 调用会重新读取这份台账。",
+      "sec2.title": "旗舰流程 — <code>/trade-team</code>",
+      "sec2.lede": "成本最高的技能（高成本 · 4-agent）：对同一只股票同时进行 4 个视角的深度分析。",
+      "step1.title": "用户执行命令",
+      "step1.desc": "<code>/trade-team AAPL</code> —— 以一个股票代码作为参数。",
+      "step2.title": "首先检查调研可行性",
+      "step2.desc": "如果无法使用网络搜索，流程到此中止——目的是防止子代理悄悄只凭训练知识作答。若可用，则将数据充分度评为 A（充分）/ B（部分）/ C（不足）。",
+      "step3.title": "4 个视角在同一次响应中同时并行执行",
+      "step3.desc": "禁止顺序调用——顺序执行就失去了并行的意义。每个子代理至少用 2 个独立来源交叉核实关键数据，并为每条依据标注 🟢/🟡/🔴 可信度。",
+      "agent.trend.name": "趋势分析师",
+      "agent.trend.q": "「现在应该顺势进场吗？」",
+      "agent.macro.name": "宏观分析师",
+      "agent.macro.q": "「宏观环境是顺风还是逆风？」",
+      "agent.risk.name": "风险经理",
+      "agent.risk.q": "「判断错了会亏多少？」",
+      "agent.flow.name": "资金面分析师",
+      "agent.flow.q": "「现在究竟是谁在真正买入？」",
+      "step4.title": "团队负责人汇总成四维评分表",
+      "step4.desc": "把每个 agent 的评分（0~5）与 Bull/Bear/Neutral 标签并排列在同一张表中，不做折中平均。",
+      "step5.title": "初步判定",
+      "step5.desc": "如果 4 个标签大体一致，就沿该方向作初步判定；如果标签分歧或评分离散度大，则直接判定为 Gray Zone（此时跳过第 6 步）。",
+      "tag.bull": "Bull（看多）",
+      "tag.bear": "Bear（看空）",
+      "tag.neutral": "Neutral（中性）",
+      "tag.gray": "Gray Zone —— 分歧本身就是信号",
+      "step6.title": "汇总反向验证（仅在初步判定已收敛时进行）",
+      "step6.desc": "把 4 份报告各自的「反证」「失败情景」汇总成一体，检验合并后是否会暴露出单个 agent 看不到的新复合风险。若足以推翻结论，则下调为 Gray Zone；否则以附加说明（caveat）标注。",
+      "step7.title": "最终报告",
+      "step7.desc": "包含一句话结论、（若为 Gray Zone）分歧说明、风险经理的失败情景（始终单独呈现）、激进/稳健/保守三档应对策略，以及汇总 4 份报告后的数据可信度综合评级（按最弱环节原则）。",
+      "callout.label": "要点：",
+      "callout.body": "意见分歧不是缺陷，而是信号。不会被强行折中成一个结论。",
+      "sec3.title": "数字由确定性代码计算，而非 LLM",
+      "sec3.lede": "<code>tools/trading_rigor.py</code> 基于 Decimal 进行精确运算，agent 只是原样引用其结果。",
+      "tool.position": "固定比例仓位规模计算",
+      "tool.kelly": "凯利公式最优下注比例",
+      "tool.rr": "基于止损/目标价的盈亏比",
+      "tool.corr": "持仓之间的相关系数",
+      "tool.heat": "账户整体合计风险",
+      "tool.cv": "对行情/指标进行 ≥2 个来源的交叉核实",
+      "sec3.quote": "「agent 只引用数字，不计算数字。」",
+      "sec4.title": "其余技能与 <code>reports/</code> 台账形成的循环",
+      "sec4.lede": "各技能彼此独立运行，但台账让系统不必每次都向用户重复提问。",
+      "cost.low": "低成本",
+      "cost.high": "高成本 · 4-agent",
+      "cost.low2": "低成本 · 无需 LLM 判断",
+      "skill.screen": "用 7 项硬性指标快速给出 Pass/Fail/Watch 判定",
+      "skill.tradeteam": "仅对通过筛选的股票进行 4 视角深度分析",
+      "skill.review": "复查持仓最初的进场依据是否依然成立",
+      "skill.portfolio": "全部持仓的实时盈亏与组合风险仪表盘",
+      "skill.postmortem": "复盘平仓后的已实现盈亏（R 倍数）与判断归因",
+      "ledger.label": "台账：",
+      "ledger.body": "<code>reports/positions.md</code>（持仓）与 <code>reports/watchlist.md</code>（关注列表）只记录真实数据。不带参数调用 <code>/position-review</code>、<code>/screen</code> 时会以整张表为对象；<code>/post-mortem</code> 则读取平仓价一栏来计算已实现盈亏。",
+      "footer.p1": "该架构借鉴了 <a href=\"https://github.com/xbtlin/ai-berkshire\" target=\"_blank\" rel=\"noopener\">xbtlin/ai-berkshire</a> 的三层（Skill/Agent/Tool）设计。",
+      "footer.p2": "MIT 许可证 · 仅供教育与研究用途，不构成投资建议。",
+      "footer.moredocs": "更详细的架构说明（architecture.md）"
+    }
+  };
+
+  var htmlKeys = {
+    "sec2.title":1,"step1.desc":1,"sec3.title":1,"sec3.lede":1,"sec4.title":1,
+    "ledger.body":1,"footer.p1":1,"footer.p2":0
+  };
+
+  function applyLang(lang){
+    var dict = DICT[lang] || DICT.ko;
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      var key = el.getAttribute('data-i18n');
+      var val = dict[key];
+      if(val === undefined) return;
+      if(htmlKeys[key] || /<[a-z]/i.test(val)){
+        el.innerHTML = val;
+      } else {
+        el.textContent = val;
+      }
+    });
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-lang-btn]').forEach(function(btn){
+      btn.classList.toggle('active', btn.getAttribute('data-lang-btn') === lang);
+    });
+    try { localStorage.setItem('att-lang', lang); } catch(e){}
+  }
+
+  document.querySelectorAll('[data-lang-btn]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      applyLang(btn.getAttribute('data-lang-btn'));
+    });
+  });
+
+  var saved = null;
+  try { saved = localStorage.getItem('att-lang'); } catch(e){}
+  var initial = saved || (navigator.language || 'ko').slice(0,2);
+  if(initial !== 'en' && initial !== 'zh') initial = 'ko';
+  applyLang(initial);
+})();
+</script>
+
+</body>
+</html>

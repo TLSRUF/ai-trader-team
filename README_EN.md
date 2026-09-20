@@ -8,7 +8,11 @@
 [![Skills](https://img.shields.io/badge/skills-5-informational.svg)](skills/)
 [![Agents](https://img.shields.io/badge/agents-4-informational.svg)](agents/)
 
-English | [한국어](README.md)
+<p align="center">
+  <a href="README.md">한국어</a> ·
+  English ·
+  <a href="docs/i18n/zh-CN/README.md">中文</a>
+</p>
 
 A framework for giving one person a professional-grade investment research team, built on AI agents. It's organized into three layers: slash commands (skills) → parallel sub-agents (perspective-based personas) → deterministic verification tools.
 

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#11161a"/>
+      <stop offset="100%" stop-color="#161d21"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5fcbaa"/>
+      <stop offset="100%" stop-color="#8fe3c9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="260" rx="18" fill="url(#bg)"/>
+  <rect x="1" y="1" width="1198" height="258" rx="17" fill="none" stroke="#2c343a" stroke-width="1.5"/>
+
+  <!-- faint grid dots -->
+  <g fill="#28343a">
+    <circle cx="1120" cy="40" r="2"/>
+    <circle cx="1150" cy="60" r="2"/>
+    <circle cx="1090" cy="70" r="2"/>
+    <circle cx="1160" cy="100" r="2"/>
+    <circle cx="1100" cy="120" r="2"/>
+    <circle cx="1140" cy="150" r="2"/>
+  </g>
+
+  <text x="60" y="90" font-family="Segoe UI, Pretendard, Noto Sans KR, Arial, sans-serif" font-size="44" font-weight="700" fill="#f2f2ee">
+    🧭 AI Trader Team
+  </text>
+
+  <text x="60" y="130" font-family="Segoe UI, Pretendard, Noto Sans KR, Arial, sans-serif" font-size="19" fill="#a3a39c">
+    Claude Code에서 실행되는 개인 투자 리서치 프레임워크
+  </text>
+  <text x="60" y="156" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#7d7d76">
+    Skill → 4 Parallel Agents → Deterministic Calc → Report Ledger
+  </text>
+
+  <!-- feature chips -->
+  <g font-family="Segoe UI, Pretendard, Noto Sans KR, Arial, sans-serif" font-size="14" font-weight="600">
+    <rect x="60" y="184" width="168" height="34" rx="17" fill="#1c2b27" stroke="#5fcbaa" stroke-width="1"/>
+    <text x="144" y="206" text-anchor="middle" fill="#5fcbaa">4-Agent Debate</text>
+
+    <rect x="240" y="184" width="192" height="34" rx="17" fill="#1c2b27" stroke="#5fcbaa" stroke-width="1"/>
+    <text x="336" y="206" text-anchor="middle" fill="#5fcbaa">Deterministic Calc</text>
+
+    <rect x="444" y="184" width="248" height="34" rx="17" fill="#241c1c" stroke="#c98a8a" stroke-width="1"/>
+    <text x="568" y="206" text-anchor="middle" fill="#e0a3a3">No Real Trades — Research Only</text>
+  </g>
+
+  <text x="1140" y="235" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#5b5b56">
+    MIT · github.com/TLSRUF/ai-trader-team
+  </text>
+</svg>

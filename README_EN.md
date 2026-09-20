@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/banner.svg" alt="AI Trader Team" width="100%"/></p>
+
 # AI Trader Team
 
 [![Test](https://github.com/TLSRUF/ai-trader-team/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/TLSRUF/ai-trader-team/actions/workflows/test.yml)
@@ -11,6 +13,14 @@ English | [한국어](README.md)
 A framework for giving one person a professional-grade investment research team, built on AI agents. It's organized into three layers: slash commands (skills) → parallel sub-agents (perspective-based personas) → deterministic verification tools.
 
 > ⚠️ For educational and research purposes only. This is not investment advice — the final judgment and responsibility are always the user's own.
+
+## Preview
+
+Running `/trade-team` spawns 4 perspective agents that argue in parallel, and the lead synthesizes them without averaging anything away:
+
+<p align="center"><img src="docs/assets/terminal-demo.svg" alt="/trade-team example run — Gray Zone verdict" width="640"/></p>
+
+*(Example data, excerpted from [reports/examples/trade-team-example.md](reports/examples/trade-team-example.md). Not for actual investment decisions.)* Want to see the interaction itself, visually? Check the **[how-it-works page](https://tlsruf.github.io/ai-trader-team/)** (한국어/English/中文).
 
 ## Who this is for
 
@@ -31,7 +41,9 @@ Tool Layer    (tools/)    ← precise calculation · data verification
 Report Layer  (reports/)  ← ledgers/artifacts, state re-read by the next run
 ```
 
-See [docs/architecture.md](docs/architecture.md) for a detailed breakdown of each layer. To see visually how the 4 agents run in parallel during `/trade-team`, check the **[how-it-works page](https://tlsruf.github.io/ai-trader-team/)** (한국어/English/中文).
+See [docs/architecture.md](docs/architecture.md) for a detailed breakdown of each layer.
+
+> `reports/` isn't a write-only log — it's a **ledger that never leaves a judgment without its evidence.** Every report keeps all 4 perspectives' scores, evidence, and counter-arguments intact, and the next run reads that state back in.
 
 ## Installation
 

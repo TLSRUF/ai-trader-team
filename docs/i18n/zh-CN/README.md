@@ -147,6 +147,11 @@ python tools/backtest.py walk-forward --tickers '["AAPL","MSFT","NVDA"]' \
 
 [MIT](../../../LICENSE)
 
+## 与同类项目的比较
+
+Claude Code 上已经有好几个投资类 Skill 项目。诚实的对比（包括我们不如对方的地方）请参阅
+[docs/comparison.md](../../comparison.md)（韩文）。
+
 ## 参考
 
 三层架构参考了 [xbtlin/ai-berkshire](https://github.com/xbtlin/ai-berkshire) 的设计。

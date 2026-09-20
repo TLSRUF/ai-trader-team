@@ -145,6 +145,11 @@ All work follows **issue → topic branch → PR**. See [CONTRIBUTING.md](CONTRI
 
 [MIT](LICENSE)
 
+## How this compares to similar projects
+
+There are already several Claude Code investment-skill projects. For an honest comparison —
+including where this one falls short — see [docs/comparison.md](docs/comparison.md) (Korean).
+
 ## Credits
 
 The three-layer architecture was benchmarked against [xbtlin/ai-berkshire](https://github.com/xbtlin/ai-berkshire).

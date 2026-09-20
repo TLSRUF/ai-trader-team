@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="470" viewBox="0 0 900 470">
+  <rect width="900" height="470" rx="14" fill="#0f1417"/>
+  <rect x="0.75" y="0.75" width="898.5" height="468.5" rx="13.5" fill="none" stroke="#2c343a" stroke-width="1.5"/>
+
+  <!-- title bar -->
+  <rect width="900" height="40" rx="14" fill="#171d21"/>
+  <rect y="26" width="900" height="14" fill="#171d21"/>
+  <circle cx="24" cy="20" r="6" fill="#e08080"/>
+  <circle cx="46" cy="20" r="6" fill="#e0c268"/>
+  <circle cx="68" cy="20" r="6" fill="#5fcbaa"/>
+  <text x="450" y="25" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#7d7d76">
+    /trade-team — DEMO-A (example)
+  </text>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16">
+    <text x="28" y="72" fill="#5fcbaa">$ /trade-team DEMO-A</text>
+
+    <text x="28" y="112" fill="#f2f2ee" font-weight="700">## 한줄 결론</text>
+    <text x="28" y="140" fill="#d8d8d3">Gray Zone — 리스크 관리자가 반대,</text>
+    <text x="28" y="164" fill="#d8d8d3">나머지 3개(추세·매크로·수급)는 긍정적</text>
+
+    <text x="28" y="204" fill="#f2f2ee" font-weight="700">## 4차원 평가</text>
+
+    <text x="28" y="234" fill="#7d7d76">관점       태그       점수</text>
+
+    <text x="28"  y="260" fill="#d8d8d3">추세</text>
+    <text x="150" y="260" fill="#5fcbaa">Bull</text>
+    <text x="260" y="260" fill="#d8d8d3">4/5</text>
+
+    <text x="28"  y="286" fill="#d8d8d3">매크로</text>
+    <text x="150" y="286" fill="#e0c268">Neutral</text>
+    <text x="260" y="286" fill="#d8d8d3">3/5</text>
+
+    <text x="28"  y="312" fill="#d8d8d3">리스크</text>
+    <text x="150" y="312" fill="#e08080">Bear</text>
+    <text x="260" y="312" fill="#d8d8d3">2/5</text>
+    <text x="320" y="312" fill="#e08080">← 반대 (역방향 검증 트리거)</text>
+
+    <text x="28"  y="338" fill="#d8d8d3">수급</text>
+    <text x="150" y="338" fill="#5fcbaa">Bull</text>
+    <text x="260" y="338" fill="#d8d8d3">4/5</text>
+
+    <text x="28" y="378" fill="#f2f2ee" font-weight="700">## 데이터 신뢰도</text>
+    <text x="28" y="404" fill="#e0c268">🟡 종합 (예시 데이터 — 실제 실행 시 자동 집계)</text>
+  </g>
+
+  <text x="28" y="446" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#5b5b56">
+    ⚠ 실제 데이터 아님 — reports/examples/trade-team-example.md 참고
+  </text>
+</svg>

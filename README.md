@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/banner.svg" alt="AI Trader Team" width="100%"/></p>
+
 # AI Trader Team
 
 [![Test](https://github.com/TLSRUF/ai-trader-team/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/TLSRUF/ai-trader-team/actions/workflows/test.yml)
@@ -11,6 +13,14 @@
 개인이 AI 에이전트를 통해 전문 수준의 투자 리서치 팀을 갖추기 위한 프레임워크입니다. 슬래시 커맨드(스킬) → 병렬 서브에이전트(관점별 페르소나) → 결정론적 검증 도구, 3계층으로 구성됩니다.
 
 > ⚠️ 교육 및 연구 목적입니다. 투자자문이 아니며, 최종 판단과 책임은 사용자 본인에게 있습니다.
+
+## 미리보기
+
+`/trade-team`을 실행하면 4개 관점 에이전트가 병렬로 논쟁하고, 팀장이 절충하지 않은 채로 종합합니다:
+
+<p align="center"><img src="docs/assets/terminal-demo.svg" alt="/trade-team 실행 예시 — Gray Zone 판정" width="640"/></p>
+
+*(예시 데이터 — [reports/examples/trade-team-example.md](reports/examples/trade-team-example.md) 발췌. 실제 투자 판단에 사용하지 마세요.)* 상호작용을 코드로 직접 보고 싶다면 **[작동 원리 페이지](https://tlsruf.github.io/ai-trader-team/)**(한국어/English/中文)를 확인하세요.
 
 ## 이런 분들께 유용합니다
 
@@ -31,7 +41,9 @@ Tool Layer    (tools/)    ← 정밀 계산 · 데이터 검증
 Report Layer  (reports/)  ← 원장·산출물, 다음 실행이 다시 읽어들이는 상태
 ```
 
-계층별 자세한 설명은 [docs/architecture.md](docs/architecture.md)를 참고하세요. `/trade-team` 실행 시 4개 에이전트가 병렬로 어떻게 움직이는지 시각적으로 보고 싶다면 **[작동 원리 페이지](https://tlsruf.github.io/ai-trader-team/)**(한국어/English/中文)를 확인하세요.
+계층별 자세한 설명은 [docs/architecture.md](docs/architecture.md)를 참고하세요.
+
+> `reports/`는 실행 결과를 쌓아두는 로그가 아니라 **근거 없는 판단을 남기지 않는 원장**입니다 — 모든 리포트는 4개 관점의 점수·근거·반증을 그대로 보관하고, 다음 실행이 그 상태를 다시 읽어들입니다.
 
 ## 설치
 

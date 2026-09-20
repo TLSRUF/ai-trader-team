@@ -150,6 +150,11 @@ python tools/backtest.py walk-forward --tickers '["AAPL","MSFT","NVDA"]' \
 
 [MIT](LICENSE)
 
+## 비슷한 프로젝트와 비교
+
+Claude Code용 투자 스킬은 이미 여러 개 있습니다. 무엇이 겹치고 무엇이 다른지, 우리가 밀리는
+지점까지 숨기지 않고 정리한 비교표는 [docs/comparison.md](docs/comparison.md)를 참고하세요.
+
 ## 참고
 
 3계층 아키텍처는 [xbtlin/ai-berkshire](https://github.com/xbtlin/ai-berkshire)를 벤치마킹했습니다.

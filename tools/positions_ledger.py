@@ -46,12 +46,23 @@ def parse_positions_table(positions_path) -> list[dict[str, str]]:
             break  # 표가 끝남
         cells = [c.strip() for c in stripped.strip("|").split("|")]
         if len(cells) < len(headers):
+            # 닫는 '|' 누락처럼 뒤쪽 칸이 비는 경우는 흔하고 안전하다 — 빈 문자열로
+            # 채워도 앞쪽 칸들의 정렬은 그대로이고, 이후 실제로 그 칸의 값을 쓰는
+            # 코드(예: Decimal 파싱)가 있다면 거기서 명확하게 실패한다.
             cells += [""] * (len(headers) - len(cells))
-        # strict=False: 사람이 직접 편집하는 markdown 표라 셀 수가 헤더 수보다
-        # 많아지는 경우(오탈자로 인한 '|' 추가 등)가 있을 수 있다 — 그런 초과분은
-        # 무시하고 관대하게 파싱하는 게 의도된 동작이다(엄격 검증은 이미 위에서
-        # 부족한 셀을 채우는 패딩으로 처리했다).
-        row = dict(zip(headers, cells, strict=False))
+        elif len(cells) > len(headers):
+            # 셀이 헤더보다 많아지는 건 보통 어느 칸 값 안에 이스케이프 안 된 '|'가
+            # 섞여 있다는 뜻이다 — 그 지점부터 모든 뒤쪽 칸이 한 칸씩 밀린다. 예전엔
+            # zip(strict=False)로 넘치는 칸을 조용히 버렸는데, 그러면 예컨대 "계좌리스크%"
+            # 칸에 다른 칸의 값이 밀려 들어가도 아무 에러 없이 조용히 틀린 숫자로 계산에
+            # 쓰일 수 있었다. 포지션 사이징에 쓰이는 파일이라 침묵하는 오류보다
+            # 명확한 에러가 낫다.
+            raise ValueError(
+                f"{path}의 행이 헤더보다 셀이 많습니다 (헤더 {len(headers)}개, "
+                f"이 행 {len(cells)}개). 어떤 칸 값 안에 '|' 문자가 섞여 있을 수 "
+                f"있습니다 — 해당 칸에서 '|'를 빼거나 다른 문자로 바꿔주세요: {stripped!r}"
+            )
+        row = dict(zip(headers, cells, strict=True))
 
         ticker = row.get("티커", "")
         if not ticker or ticker.startswith("_("):

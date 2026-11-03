@@ -77,6 +77,19 @@ class TestParsePositionsTable(unittest.TestCase):
             rows = parse_positions_table(path)
         self.assertEqual(rows[0]["비고"], "")
 
+    def test_cell_containing_pipe_raises_instead_of_shifting_columns(self):
+        # 회귀 테스트: 어떤 칸 값 안에 이스케이프 안 된 '|'가 섞이면 그 뒤로 모든
+        # 칸이 한 칸씩 밀린다. 예전엔 zip(strict=False)로 넘치는 칸을 조용히
+        # 버려서, "계좌리스크%" 같은 숫자 칸에 다른 칸의 값이 밀려 들어가도 에러
+        # 없이 그대로 계산에 쓰일 수 있었다 (security-audit-skill 감사에서 발견).
+        # 이제는 셀 개수가 헤더보다 많으면 명확한 에러를 낸다.
+        content = "| 티커 | 상태 | 계좌리스크% |\n|---|---|---|\n| AAA|BBB | 보유중 | 1.5 |\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._write(tmp, content)
+            with self.assertRaises(ValueError) as ctx:
+                parse_positions_table(path)
+        self.assertIn("|", str(ctx.exception))
+
     def test_trailing_content_after_table_does_not_leak_into_rows(self):
         # 실제 reports/positions.md처럼 표 뒤에 다른 섹션(메모 등)이 이어지는 경우,
         # 표가 끝난 지점('|'로 시작하지 않는 첫 줄)에서 파싱을 멈춰야 한다 —
